@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+
 function Hire() {
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -24,16 +27,25 @@ function Hire() {
     physicalResources: "",
     additionalResources: "",
     location: "",
+    fullLocation: "",
+    communicationMethod: "",
     notificationPeriod: "",
   });
+
+  const [files, setFiles] = useState([]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       [name]: value,
-    });
+    }));
+  };
+
+  const handleFileChange = (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    setFiles(selectedFiles);
   };
 
   const filledFields = Object.values(formData).filter(
@@ -45,431 +57,390 @@ function Hire() {
   const completion = Math.round((filledFields / totalFields) * 100);
 
   return (
-    <main className="deliver-page">
+    <div className="app">
 
-      {/* =========================================
-          PAGE HEADER
-      ========================================= */}
+      {/* ================= NAVBAR ================= */}
 
-      <section className="deliver-header">
+      <Navbar />
 
-        <div>
 
-          <span className="page-badge">
-            HIRE
-          </span>
+      {/* ================= HIRE PAGE ================= */}
 
-          <h1>
-            Post Your <span>Requirement</span>
-          </h1>
+      <main className="deliver-page">
 
-          <p>
-            Clearly describe what you need, define the scope, resources,
-            budget and timeline so suitable teams can understand and
-            respond to your requirement.
-          </p>
+        {/* ================= HEADER ================= */}
 
-        </div>
+        <section className="deliver-header">
 
-        <div className="header-status">
-          <span className="status-dot"></span>
-          New Requirement
-        </div>
+          <div>
+            <span className="page-badge">
+              HIRE
+            </span>
 
-      </section>
-
-
-      {/* =========================================
-          THREE COLUMN WORKSPACE
-      ========================================= */}
-
-      <section className="deliver-workspace">
-
-
-        {/* =====================================
-            LEFT — REQUIREMENT GUIDE
-        ===================================== */}
-
-        <aside className="deliver-guide">
-
-          <div className="side-heading">
-
-            <span>01</span>
-
-            <h3>Requirement Guide</h3>
-
-          </div>
-
-
-          <p className="side-intro">
-
-            Provide complete information so suitable
-            teams can understand exactly what you need.
-
-          </p>
-
-
-          <div className="guide-step active">
-
-            <span>01</span>
-
-            <div>
-
-              <strong>Basic Information</strong>
-
-              <small>
-                Title, type and category
-              </small>
-
-            </div>
-
-          </div>
-
-
-          <div className="guide-step">
-
-            <span>02</span>
-
-            <div>
-
-              <strong>Requirement Details</strong>
-
-              <small>
-                Description, scope and tasks
-              </small>
-
-            </div>
-
-          </div>
-
-
-          <div className="guide-step">
-
-            <span>03</span>
-
-            <div>
-
-              <strong>Budget & Processing</strong>
-
-              <small>
-                Budget and processing priority
-              </small>
-
-            </div>
-
-          </div>
-
-
-          <div className="guide-step">
-
-            <span>04</span>
-
-            <div>
-
-              <strong>Timeline</strong>
-
-              <small>
-                Standard and urgent timeline
-              </small>
-
-            </div>
-
-          </div>
-
-
-          <div className="guide-step">
-
-            <span>05</span>
-
-            <div>
-
-              <strong>Human Resources</strong>
-
-              <small>
-                Roles, quantity and skills
-              </small>
-
-            </div>
-
-          </div>
-
-
-          <div className="guide-step">
-
-            <span>06</span>
-
-            <div>
-
-              <strong>Tools & Resources</strong>
-
-              <small>
-                Software, equipment and resources
-              </small>
-
-            </div>
-
-          </div>
-
-
-          <div className="guide-step">
-
-            <span>07</span>
-
-            <div>
-
-              <strong>Location & Updates</strong>
-
-              <small>
-                Locations and notification period
-              </small>
-
-            </div>
-
-          </div>
-
-
-          <div className="guide-tip">
-
-            <strong>TIP</strong>
+            <h1>
+              Post Your <span>Requirement</span>
+            </h1>
 
             <p>
-              The more clearly you describe your requirement,
-              the easier it becomes for suitable teams to
-              understand and submit relevant proposals.
+              Tell teams and service providers exactly what you need,
+              including your requirements, budget, timeline, resources,
+              location and preferred communication method.
+            </p>
+          </div>
+
+          <div className="header-status">
+            <span className="status-dot"></span>
+            New Requirement
+          </div>
+
+        </section>
+
+
+        {/* ================= WORKSPACE ================= */}
+
+        <section className="deliver-workspace">
+
+
+          {/* ================= LEFT GUIDE ================= */}
+
+          <aside className="deliver-guide">
+
+            <div className="side-heading">
+              <span>01</span>
+              <h3>Requirement Guide</h3>
+            </div>
+
+            <p className="side-intro">
+              Provide complete information so suitable teams and
+              service providers can understand exactly what you need.
             </p>
 
-          </div>
 
-        </aside>
-
-
-
-        {/* =====================================
-            CENTER — REQUIREMENT FORM
-        ===================================== */}
-
-        <div className="deliver-form-card">
-
-          <div className="form-card-header">
-
-            <div>
-
-              <span>
-                HIRE REQUIREMENT
-              </span>
-
-              <h2>
-                Requirement Information
-              </h2>
-
-            </div>
-
-            <small>
-              * Required
-            </small>
-
-          </div>
-
-
-          <form
-            className="requirement-form"
-            onSubmit={(e) => e.preventDefault()}
-          >
-
-
-            {/* =================================
-                01 BASIC INFORMATION
-            ================================= */}
-
-            <div className="form-section-title">
-
+            <div className="guide-step active">
               <span>01</span>
-
-              Basic Information
-
+              <div>
+                <strong>Basic Information</strong>
+                <small>Title, type and category</small>
+              </div>
             </div>
 
 
-            <div className="form-group">
+            <div className="guide-step">
+              <span>02</span>
+              <div>
+                <strong>Requirement Details</strong>
+                <small>Description, scope and tasks</small>
+              </div>
+            </div>
 
-              <label>
-                Requirement Title *
-              </label>
 
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                placeholder="e.g. E-commerce Website Development"
-              />
+            <div className="guide-step">
+              <span>03</span>
+              <div>
+                <strong>Budget & Processing</strong>
+                <small>Budget and processing priority</small>
+              </div>
+            </div>
+
+
+            <div className="guide-step">
+              <span>04</span>
+              <div>
+                <strong>Timeline</strong>
+                <small>Required and urgent timeline</small>
+              </div>
+            </div>
+
+
+            <div className="guide-step">
+              <span>05</span>
+              <div>
+                <strong>Human Resources</strong>
+                <small>Roles, quantity and skills</small>
+              </div>
+            </div>
+
+
+            <div className="guide-step">
+              <span>06</span>
+              <div>
+                <strong>Tools & Resources</strong>
+                <small>Software, equipment and resources</small>
+              </div>
+            </div>
+
+
+            <div className="guide-step">
+              <span>07</span>
+              <div>
+                <strong>Location & Communication</strong>
+                <small>Location and preferred contact</small>
+              </div>
+            </div>
+
+
+            <div className="guide-tip">
+              <strong>TIP</strong>
+
+              <p>
+                The more clearly you describe your requirement,
+                the easier it becomes for suitable providers to
+                understand and submit relevant proposals.
+              </p>
+            </div>
+
+          </aside>
+
+
+          {/* ================= CENTER FORM ================= */}
+
+          <div className="deliver-form-card">
+
+            <div className="form-card-header">
+
+              <div>
+                <span>
+                  HIRE REQUIREMENT
+                </span>
+
+                <h2>
+                  Requirement Information
+                </h2>
+              </div>
 
               <small>
-                Give your requirement a short and clear title.
+                * Required
               </small>
 
             </div>
 
 
-            <div className="form-row">
+            <form
+              className="requirement-form"
+              onSubmit={(e) => e.preventDefault()}
+            >
 
-              <div className="form-group">
 
-                <label>
-                  Requirement Type *
-                </label>
+              {/* ================= 01 BASIC ================= */}
 
-                <select
-                  name="type"
-                  value={formData.type}
-                  onChange={handleChange}
-                >
-
-                  <option value="">
-                    Select type
-                  </option>
-
-                  <option value="Product">
-                    Product
-                  </option>
-
-                  <option value="Service">
-                    Service
-                  </option>
-
-                  <option value="Task">
-                    Task
-                  </option>
-
-                  <option value="Project">
-                    Project
-                  </option>
-
-                  <option value="Human Resource">
-                    Human Resource
-                  </option>
-
-                  <option value="Other">
-                    Other
-                  </option>
-
-                </select>
-
+              <div className="form-section-title">
+                <span>01</span>
+                Basic Information
               </div>
 
 
               <div className="form-group">
 
                 <label>
-                  Category
+                  Requirement Title *
                 </label>
 
                 <input
                   type="text"
-                  name="category"
-                  value={formData.category}
+                  name="title"
+                  value={formData.title}
                   onChange={handleChange}
-                  placeholder="e.g. Software Development"
+                  placeholder="e.g. E-commerce Website Development"
                 />
+
+                <small>
+                  Give your requirement a short and clear title.
+                </small>
 
               </div>
 
-            </div>
+
+              <div className="form-row">
+
+                <div className="form-group">
+
+                  <label>
+                    Requirement Type *
+                  </label>
+
+                  <select
+                    name="type"
+                    value={formData.type}
+                    onChange={handleChange}
+                  >
+
+                    <option value="">
+                      Select type
+                    </option>
+
+                    <option value="Product">
+                      Product
+                    </option>
+
+                    <option value="Service">
+                      Service
+                    </option>
+
+                    <option value="Task">
+                      Task
+                    </option>
+
+                    <option value="Project">
+                      Project
+                    </option>
+
+                    <option value="Human Resource">
+                      Human Resource
+                    </option>
+
+                    <option value="Other">
+                      Other
+                    </option>
+
+                  </select>
+
+                </div>
 
 
+                <div className="form-group">
 
-            {/* =================================
-                02 REQUIREMENT DETAILS
-            ================================= */}
+                  <label>
+                    Category *
+                  </label>
 
-            <div className="form-section-title">
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleChange}
+                  >
 
-              <span>02</span>
+                    <option value="">
+                      Select category
+                    </option>
 
-              Requirement Details
+                    <option value="Software Development">
+                      Software Development
+                    </option>
 
-            </div>
+                    <option value="Web Development">
+                      Web Development
+                    </option>
 
+                    <option value="Mobile App Development">
+                      Mobile App Development
+                    </option>
 
-            <div className="form-group">
+                    <option value="Design">
+                      Design
+                    </option>
 
-              <label>
-                What Do You Need? *
-              </label>
+                    <option value="Marketing">
+                      Marketing
+                    </option>
 
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows="6"
-                placeholder="Describe exactly what you need, your expectations, required features, quantity or other important details..."
-              />
+                    <option value="Research">
+                      Research
+                    </option>
 
-              <small>
-                Explain your requirement clearly so teams can
-                understand what needs to be provided.
-              </small>
+                    <option value="Consulting">
+                      Consulting
+                    </option>
 
-            </div>
+                    <option value="Technical Service">
+                      Technical Service
+                    </option>
 
+                    <option value="Other">
+                      Other
+                    </option>
 
-            <div className="form-group">
+                  </select>
 
-              <label>
-                Requirement Scope
-              </label>
+                </div>
 
-              <textarea
-                name="scope"
-                value={formData.scope}
-                onChange={handleChange}
-                rows="5"
-                placeholder="Define what should be included in the requirement and what should be covered..."
-              />
-
-              <small>
-                Mention the boundaries, coverage and expected scope.
-              </small>
-
-            </div>
-
-
-            <div className="form-group">
-
-              <label>
-                Tasks / Deliverables
-              </label>
-
-              <textarea
-                name="deliverables"
-                value={formData.deliverables}
-                onChange={handleChange}
-                rows="5"
-                placeholder="List the main tasks, outputs or deliverables you expect..."
-              />
-
-              <small>
-                You can list multiple tasks or expected outputs.
-              </small>
-
-            </div>
+              </div>
 
 
+              {/* ================= 02 DETAILS ================= */}
 
-            {/* =================================
-                03 BUDGET & PROCESSING
-            ================================= */}
-
-            <div className="form-section-title">
-
-              <span>03</span>
-
-              Budget & Processing
-
-            </div>
+              <div className="form-section-title">
+                <span>02</span>
+                Requirement Details
+              </div>
 
 
-            <div className="form-row">
+              <div className="form-group">
+
+                <label>
+                  What Do You Need? *
+                </label>
+
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows="6"
+                  placeholder="Describe exactly what you need, your expectations, required features, quantity or other important details..."
+                />
+
+                <small>
+                  Clearly explain the product, service, task or project
+                  you want a provider to deliver.
+                </small>
+
+              </div>
+
+
+              <div className="form-group">
+
+                <label>
+                  Requirement Scope
+                </label>
+
+                <textarea
+                  name="scope"
+                  value={formData.scope}
+                  onChange={handleChange}
+                  rows="5"
+                  placeholder="Define what should be included in the requirement and what should be covered..."
+                />
+
+                <small>
+                  Mention the boundaries, coverage and expected scope.
+                </small>
+
+              </div>
+
+
+              <div className="form-group">
+
+                <label>
+                  Tasks / Deliverables
+                </label>
+
+                <textarea
+                  name="deliverables"
+                  value={formData.deliverables}
+                  onChange={handleChange}
+                  rows="5"
+                  placeholder={`Example:
+1. UI/UX Design
+2. Frontend Development
+3. Backend Development
+4. Database Integration
+5. Testing
+6. Deployment`}
+                />
+
+                <small>
+                  Specify the main tasks, outputs or deliverables you expect.
+                </small>
+
+              </div>
+
+
+              {/* ================= 03 BUDGET ================= */}
+
+              <div className="form-section-title">
+                <span>03</span>
+                Budget & Processing
+              </div>
+
 
               <div className="form-group">
 
@@ -486,7 +457,8 @@ function Hire() {
                 />
 
                 <small>
-                  Mention the total budget available for the complete requirement.
+                  Mention the maximum or expected budget available
+                  for the complete requirement.
                 </small>
 
               </div>
@@ -495,7 +467,7 @@ function Hire() {
               <div className="form-group">
 
                 <label>
-                  Processing Type
+                  Processing Type *
                 </label>
 
                 <select
@@ -505,7 +477,7 @@ function Hire() {
                 >
 
                   <option value="">
-                    Select processing
+                    Select processing type
                   </option>
 
                   <option value="Normal Processing">
@@ -518,567 +490,790 @@ function Hire() {
 
                 </select>
 
-              </div>
-
-            </div>
-
-
-
-            {/* =================================
-                04 TIMELINE
-            ================================= */}
-
-            <div className="form-section-title">
-
-              <span>04</span>
-
-              Timeline
-
-            </div>
-
-
-            <div className="form-row">
-
-              <div className="form-group">
-
-                <label>
-                  Standard / Required Timeline
-                </label>
-
-                <input
-                  type="text"
-                  name="standardTimeline"
-                  value={formData.standardTimeline}
-                  onChange={handleChange}
-                  placeholder="e.g. 30 days"
-                />
-
                 <small>
-                  Mention the normal time in which the requirement is needed.
+                  Urgent processing may require additional cost because
+                  the provider may need to allocate extra resources or
+                  complete the work in a shorter time.
                 </small>
 
               </div>
 
 
-              <div className="form-group">
+              {/* ================= 04 TIMELINE ================= */}
 
-                <label>
-                  Urgent / Optimal Timeline
-                </label>
-
-                <input
-                  type="text"
-                  name="urgentTimeline"
-                  value={formData.urgentTimeline}
-                  onChange={handleChange}
-                  placeholder="e.g. 15 days"
-                />
-
-                <small>
-                  If urgent processing is selected, mention the preferred faster timeline.
-                </small>
-
-              </div>
-
-            </div>
-
-
-
-            {/* =================================
-                05 HUMAN RESOURCES
-            ================================= */}
-
-            <div className="form-section-title">
-
-              <span>05</span>
-
-              Human Resources
-
-            </div>
-
-
-            <div className="form-group">
-
-              <label>
-                Required Human Resources
-              </label>
-
-              <input
-                type="text"
-                name="humanResources"
-                value={formData.humanResources}
-                onChange={handleChange}
-                placeholder="e.g. 1 Project Manager, 2 Developers, 1 Designer"
-              />
-
-              <small>
-                Mention the number of people or resources required.
-              </small>
-
-            </div>
-
-
-            <div className="form-group">
-
-              <label>
-                Required Roles
-              </label>
-
-              <textarea
-                name="roles"
-                value={formData.roles}
-                onChange={handleChange}
-                rows="4"
-                placeholder="e.g. Project Manager, Frontend Developer, Backend Developer..."
-              />
-
-            </div>
-
-
-            <div className="form-group">
-
-              <label>
-                Required Skills & Expertise
-              </label>
-
-              <textarea
-                name="skills"
-                value={formData.skills}
-                onChange={handleChange}
-                rows="4"
-                placeholder="e.g. React, Python, Flask, UI/UX, Database Management..."
-              />
-
-              <small>
-                Mention the skills or expertise you expect from the team.
-              </small>
-
-            </div>
-
-
-
-            {/* =================================
-                06 TOOLS & RESOURCES
-            ================================= */}
-
-            <div className="form-section-title">
-
-              <span>06</span>
-
-              Tools & Resources
-
-            </div>
-
-
-            <div className="form-group">
-
-              <label>
-                Required Tools / Software
-              </label>
-
-              <textarea
-                name="tools"
-                value={formData.tools}
-                onChange={handleChange}
-                rows="4"
-                placeholder="e.g. Figma, React, VS Code, MySQL, Adobe Photoshop..."
-              />
-
-            </div>
-
-
-            <div className="form-group">
-
-              <label>
-                Physical Resources / Equipment
-              </label>
-
-              <textarea
-                name="physicalResources"
-                value={formData.physicalResources}
-                onChange={handleChange}
-                rows="4"
-                placeholder="Mention any physical equipment, machinery, devices or other resources required..."
-              />
-
-            </div>
-
-
-            <div className="form-group">
-
-              <label>
-                Additional Resources Required
-              </label>
-
-              <textarea
-                name="additionalResources"
-                value={formData.additionalResources}
-                onChange={handleChange}
-                rows="4"
-                placeholder="Mention any additional resources, materials, information or support required..."
-              />
-
-            </div>
-
-
-
-            {/* =================================
-                07 LOCATION & UPDATES
-            ================================= */}
-
-            <div className="form-section-title">
-
-              <span>07</span>
-
-              Location & Updates
-
-            </div>
-
-
-            <div className="form-group">
-
-              <label>
-                Required Location(s)
-              </label>
-
-              <input
-                type="text"
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                placeholder="e.g. Islamabad, Rawalpindi, Lahore / Remote"
-              />
-
-              <small>
-                Multiple locations can be mentioned if the requirement
-                is needed in more than one place.
-              </small>
-
-            </div>
-
-
-            <div className="form-group">
-
-              <label>
-                Notification / Update Period
-              </label>
-
-              <select
-                name="notificationPeriod"
-                value={formData.notificationPeriod}
-                onChange={handleChange}
-              >
-
-                <option value="">
-                  Select update period
-                </option>
-
-                <option value="Every 24 Hours">
-                  Every 24 Hours
-                </option>
-
-                <option value="Every 48 Hours">
-                  Every 48 Hours
-                </option>
-
-                <option value="Weekly">
-                  Weekly
-                </option>
-
-                <option value="On Status Change">
-                  On Status Change
-                </option>
-
-              </select>
-
-              <small>
-                Choose how often you would like requirement updates.
-              </small>
-
-            </div>
-
-
-
-            {/* =================================
-                ACTIONS
-            ================================= */}
-
-            <div className="form-actions">
-
-              <Link
-                to="/"
-                className="secondary-btn"
-              >
-                Cancel
-              </Link>
-
-
-              <button
-                type="submit"
-                className="primary-btn"
-              >
-                Post Requirement →
-              </button>
-
-            </div>
-
-
-          </form>
-
-        </div>
-
-
-
-        {/* =====================================
-            RIGHT — LIVE SUMMARY
-        ===================================== */}
-
-        <aside className="project-summary">
-
-
-          <div className="summary-header">
-
-            <div>
-
-              <span>02</span>
-
-              <h3>
-                Requirement Summary
-              </h3>
-
-            </div>
-
-            <span className="live-label">
-              LIVE
-            </span>
-
-          </div>
-
-
-
-          {/* COMPLETION */}
-
-          <div className="completion-card">
-
-            <div className="completion-top">
-
-              <span>
-                Requirement Completion
-              </span>
-
-              <strong>
-                {filledFields}/{totalFields}
-              </strong>
-
-            </div>
-
-
-            <div className="progress-track">
-
-              <div
-                className="progress-fill"
-                style={{
-                  width: `${completion}%`,
-                }}
-              ></div>
-
-            </div>
-
-
-            <small>
-              {completion}% complete — add clear details
-              to create a stronger requirement.
-            </small>
-
-          </div>
-
-
-
-          {/* PREVIEW */}
-
-          <div className="summary-preview">
-
-            <span>
-              REQUIREMENT PREVIEW
-            </span>
-
-
-            <h2>
-              {formData.title || "Your Requirement"}
-            </h2>
-
-
-            <strong>
-              {formData.type || "Product / Service / Project"}
-            </strong>
-
-
-            <p>
-              {formData.description ||
-                "Your requirement description will appear here as you fill in the form."}
-            </p>
-
-          </div>
-
-
-
-          {/* DETAILS */}
-
-          <div className="summary-details">
-
-
-            <div>
-
-              <span>
-                Type
-              </span>
-
-              <strong>
-                {formData.type || "Not specified"}
-              </strong>
-
-            </div>
-
-
-            <div>
-
-              <span>
-                Category
-              </span>
-
-              <strong>
-                {formData.category || "Not specified"}
-              </strong>
-
-            </div>
-
-
-            <div>
-
-              <span>
-                Budget
-              </span>
-
-              <strong>
-                {formData.budget || "Not specified"}
-              </strong>
-
-            </div>
-
-
-            <div>
-
-              <span>
-                Processing
-              </span>
-
-              <strong>
-                {formData.processing || "Not specified"}
-              </strong>
-
-            </div>
-
-
-            <div>
-
-              <span>
+              <div className="form-section-title">
+                <span>04</span>
                 Timeline
-              </span>
-
-              <strong>
-                {formData.standardTimeline || "Not specified"}
-              </strong>
-
-            </div>
+              </div>
 
 
-            <div>
+              <div className="form-row">
 
-              <span>
-                Location
-              </span>
+                <div className="form-group">
 
-              <strong>
-                {formData.location || "Not specified"}
-              </strong>
+                  <label>
+                    Standard / Required Timeline *
+                  </label>
 
-            </div>
+                  <input
+                    type="text"
+                    name="standardTimeline"
+                    value={formData.standardTimeline}
+                    onChange={handleChange}
+                    placeholder="e.g. 30 days"
+                  />
+
+                  <small>
+                    Mention when you normally need the requirement completed.
+                  </small>
+
+                </div>
 
 
-            <div>
+                <div className="form-group">
 
-              <span>
+                  <label>
+                    Urgent / Optimal Timeline
+                  </label>
+
+                  <input
+                    type="text"
+                    name="urgentTimeline"
+                    value={formData.urgentTimeline}
+                    onChange={handleChange}
+                    placeholder="e.g. 15 days"
+                  />
+
+                  <small>
+                    Mention the fastest preferred completion time if needed.
+                  </small>
+
+                </div>
+
+              </div>
+
+
+              {/* ================= 05 HUMAN RESOURCES ================= */}
+
+              <div className="form-section-title">
+                <span>05</span>
                 Human Resources
-              </span>
+              </div>
 
-              <strong>
-                {formData.humanResources || "Not specified"}
-              </strong>
+
+              <div className="form-group">
+
+                <label>
+                  Required Human Resources
+                </label>
+
+                <textarea
+                  name="humanResources"
+                  value={formData.humanResources}
+                  onChange={handleChange}
+                  rows="4"
+                  placeholder={`Example:
+1. 1 Project Manager
+2. 2 Frontend Developers
+3. 1 Backend Developer
+4. 1 UI/UX Designer`}
+                />
+
+                <small>
+                  Mention the people, quantity and type of resources
+                  required for your project or task.
+                </small>
+
+              </div>
+
+
+              <div className="form-group">
+
+                <label>
+                  Required Roles
+                </label>
+
+                <textarea
+                  name="roles"
+                  value={formData.roles}
+                  onChange={handleChange}
+                  rows="4"
+                  placeholder="e.g. Project Manager, Frontend Developer, Backend Developer, UI/UX Designer..."
+                />
+
+                <small>
+                  Mention the specific roles you expect from the provider.
+                </small>
+
+              </div>
+
+
+              <div className="form-group">
+
+                <label>
+                  Required Skills & Expertise
+                </label>
+
+                <textarea
+                  name="skills"
+                  value={formData.skills}
+                  onChange={handleChange}
+                  rows="4"
+                  placeholder="e.g. React.js, Python, Flask, MySQL, UI/UX, Project Management..."
+                />
+
+                <small>
+                  Mention the skills and expertise required from the team.
+                </small>
+
+              </div>
+
+
+              {/* ================= 06 TOOLS ================= */}
+
+              <div className="form-section-title">
+                <span>06</span>
+                Tools & Resources
+              </div>
+
+
+              <div className="form-group">
+
+                <label>
+                  Required Tools / Software
+                </label>
+
+                <textarea
+                  name="tools"
+                  value={formData.tools}
+                  onChange={handleChange}
+                  rows="4"
+                  placeholder="e.g. Figma, React, VS Code, MySQL, Adobe Photoshop, AutoCAD..."
+                />
+
+                <small>
+                  Mention any specific software, platforms or tools
+                  that the provider should have or use.
+                </small>
+
+              </div>
+
+
+              <div className="form-group">
+
+                <label>
+                  Physical Resources / Equipment
+                </label>
+
+                <textarea
+                  name="physicalResources"
+                  value={formData.physicalResources}
+                  onChange={handleChange}
+                  rows="4"
+                  placeholder="Mention any physical equipment, machinery, devices or hardware required..."
+                />
+
+                <small>
+                  Mention equipment or physical resources needed for the requirement.
+                </small>
+
+              </div>
+
+
+              <div className="form-group">
+
+                <label>
+                  Additional Resources Required
+                </label>
+
+                <textarea
+                  name="additionalResources"
+                  value={formData.additionalResources}
+                  onChange={handleChange}
+                  rows="4"
+                  placeholder="Mention any additional materials, information, support, resources or special requirements..."
+                />
+
+                <small>
+                  Mention anything else the service provider must arrange
+                  or have available.
+                </small>
+
+              </div>
+
+
+              {/* ================= 07 LOCATION ================= */}
+
+              <div className="form-section-title">
+                <span>07</span>
+                Location & Communication
+              </div>
+
+
+              <div className="form-group">
+
+                <label>
+                  Required City *
+                </label>
+
+                <select
+                  name="location"
+                  value={formData.location}
+                  onChange={handleChange}
+                >
+
+                  <option value="">
+                    Select city
+                  </option>
+
+                  <option value="Islamabad">
+                    Islamabad
+                  </option>
+
+                  <option value="Rawalpindi">
+                    Rawalpindi
+                  </option>
+
+                  <option value="Lahore">
+                    Lahore
+                  </option>
+
+                  <option value="Karachi">
+                    Karachi
+                  </option>
+
+                  <option value="Peshawar">
+                    Peshawar
+                  </option>
+
+                  <option value="Quetta">
+                    Quetta
+                  </option>
+
+                  <option value="Multan">
+                    Multan
+                  </option>
+
+                  <option value="Faisalabad">
+                    Faisalabad
+                  </option>
+
+                  <option value="Gujranwala">
+                    Gujranwala
+                  </option>
+
+                  <option value="Sialkot">
+                    Sialkot
+                  </option>
+
+                  <option value="Bahawalpur">
+                    Bahawalpur
+                  </option>
+
+                  <option value="Sargodha">
+                    Sargodha
+                  </option>
+
+                  <option value="Hyderabad">
+                    Hyderabad
+                  </option>
+
+                  <option value="Abbottabad">
+                    Abbottabad
+                  </option>
+
+                  <option value="Mardan">
+                    Mardan
+                  </option>
+
+                  <option value="Remote">
+                    Remote
+                  </option>
+
+                  <option value="Multiple Cities">
+                    Multiple Cities
+                  </option>
+
+                </select>
+
+                <small>
+                  Select where the product, service or project is required.
+                </small>
+
+              </div>
+
+
+              <div className="form-group">
+
+                <label>
+                  Full Location / Address
+                </label>
+
+                <textarea
+                  name="fullLocation"
+                  value={formData.fullLocation}
+                  onChange={handleChange}
+                  rows="3"
+                  placeholder="Enter complete address, area, office, site or other location details..."
+                />
+
+                <small>
+                  Provide detailed location information if required.
+                </small>
+
+              </div>
+
+
+              <div className="form-group">
+
+                <label>
+                  Preferred Communication Method *
+                </label>
+
+                <select
+                  name="communicationMethod"
+                  value={formData.communicationMethod}
+                  onChange={handleChange}
+                >
+
+                  <option value="">
+                    Select communication method
+                  </option>
+
+                  <option value="Email">
+                    Email
+                  </option>
+
+                  <option value="Phone Call">
+                    Phone Call
+                  </option>
+
+                  <option value="WhatsApp">
+                    WhatsApp
+                  </option>
+
+                  <option value="SMS">
+                    SMS
+                  </option>
+
+                  <option value="Video Call">
+                    Video Call
+                  </option>
+
+                  <option value="Platform Messages">
+                    Platform Messages
+                  </option>
+
+                  <option value="Multiple Methods">
+                    Multiple Methods
+                  </option>
+
+                </select>
+
+                <small>
+                  Select your preferred method for communicating with providers.
+                </small>
+
+              </div>
+
+
+              {/* ================= 08 DOCUMENTS ================= */}
+
+              <div className="form-section-title">
+                <span>08</span>
+                Requirement Documents
+              </div>
+
+
+              <div className="form-group">
+
+                <label>
+                  Upload Requirement Files
+                </label>
+
+                <div className="file-upload-box">
+
+                  <input
+                    type="file"
+                    id="hireFiles"
+                    multiple
+                    onChange={handleFileChange}
+                  />
+
+                  <label
+                    htmlFor="hireFiles"
+                    className="file-upload-label"
+                  >
+                    <span className="upload-icon">
+                      ↑
+                    </span>
+
+                    <strong>
+                      Upload Files
+                    </strong>
+
+                    <small>
+                      Add PDF, DOC, DOCX, images or other relevant files
+                    </small>
+                  </label>
+
+                </div>
+
+
+                {files.length > 0 && (
+                  <div className="uploaded-files-list">
+
+                    {files.map((file, index) => (
+                      <div
+                        className="uploaded-file-item"
+                        key={index}
+                      >
+
+                        <span>
+                          {file.name}
+                        </span>
+
+                        <small>
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </small>
+
+                      </div>
+                    ))}
+
+                  </div>
+                )}
+
+                <small>
+                  Upload specifications, reference documents,
+                  drawings, requirements or other useful files.
+                </small>
+
+              </div>
+
+
+              {/* ================= 09 UPDATES ================= */}
+
+              <div className="form-section-title">
+                <span>09</span>
+                Updates & Follow-up
+              </div>
+
+
+              <div className="form-group">
+
+                <label>
+                  Notification / Update Period
+                </label>
+
+                <select
+                  name="notificationPeriod"
+                  value={formData.notificationPeriod}
+                  onChange={handleChange}
+                >
+
+                  <option value="">
+                    Select update period
+                  </option>
+
+                  <option value="Every 24 Hours">
+                    Every 24 Hours
+                  </option>
+
+                  <option value="Every 48 Hours">
+                    Every 48 Hours
+                  </option>
+
+                  <option value="Weekly">
+                    Weekly
+                  </option>
+
+                  <option value="On Status Change">
+                    On Status Change
+                  </option>
+
+                </select>
+
+                <small>
+                  Choose how often you would like to receive requirement
+                  or project updates.
+                </small>
+
+              </div>
+
+
+              {/* ================= ACTIONS ================= */}
+
+              <div className="form-actions">
+
+                <Link
+                  to="/"
+                  className="secondary-btn"
+                >
+                  Cancel
+                </Link>
+
+
+                <button
+                  type="submit"
+                  className="primary-btn"
+                >
+                  Post Requirement →
+                </button>
+
+              </div>
+
+            </form>
+
+          </div>
+
+
+          {/* ================= RIGHT SUMMARY ================= */}
+
+          <aside className="project-summary">
+
+            <div className="summary-header">
+
+              <div>
+
+                <span>02</span>
+
+                <h3>
+                  Requirement Summary
+                </h3>
+
+              </div>
+
+              <span className="live-label">
+                LIVE
+              </span>
 
             </div>
 
 
-          </div>
+            {/* COMPLETION */}
+
+            <div className="completion-card">
+
+              <div className="completion-top">
+
+                <span>
+                  Requirement Completion
+                </span>
+
+                <strong>
+                  {filledFields}/{totalFields}
+                </strong>
+
+              </div>
 
 
+              <div className="progress-track">
 
-          {/* CHECKLIST */}
+                <div
+                  className="progress-fill"
+                  style={{
+                    width: `${completion}%`,
+                  }}
+                ></div>
 
-          <div className="summary-checklist">
-
-            <span>
-              BEFORE POSTING
-            </span>
-
-
-            <p>
-              ✓ Clear requirement title
-            </p>
+              </div>
 
 
-            <p>
-              ✓ Requirement type selected
-            </p>
+              <small>
+                {completion}% complete
+              </small>
+
+            </div>
 
 
-            <p>
-              ✓ Detailed requirement description
-            </p>
+            {/* PREVIEW */}
+
+            <div className="summary-preview">
+
+              <span>
+                REQUIREMENT PREVIEW
+              </span>
 
 
-            <p>
-              ✓ Scope and deliverables defined
-            </p>
+              <h2>
+                {formData.title || "Your Requirement"}
+              </h2>
 
 
-            <p>
-              ✓ Budget and processing defined
-            </p>
+              <strong>
+                {formData.type || "Product / Service / Project"}
+              </strong>
 
 
-            <p>
-              ✓ Timeline mentioned
-            </p>
+              <p>
+                {formData.description ||
+                  "Your requirement description will appear here as you fill in the form."}
+              </p>
+
+            </div>
 
 
-            <p>
-              ✓ Human resources and skills mentioned
-            </p>
+            {/* DETAILS */}
+
+            <div className="summary-details">
+
+              <div>
+                <span>
+                  Type
+                </span>
+
+                <strong>
+                  {formData.type || "Not specified"}
+                </strong>
+              </div>
 
 
-            <p>
-              ✓ Location and update period selected
-            </p>
+              <div>
+                <span>
+                  Category
+                </span>
 
-          </div>
+                <strong>
+                  {formData.category || "Not specified"}
+                </strong>
+              </div>
 
 
-        </aside>
+              <div>
+                <span>
+                  Budget
+                </span>
+
+                <strong>
+                  {formData.budget || "Not specified"}
+                </strong>
+              </div>
 
 
-      </section>
+              <div>
+                <span>
+                  Processing
+                </span>
 
-    </main>
+                <strong>
+                  {formData.processing || "Not specified"}
+                </strong>
+              </div>
+
+
+              <div>
+                <span>
+                  Timeline
+                </span>
+
+                <strong>
+                  {formData.standardTimeline || "Not specified"}
+                </strong>
+              </div>
+
+
+              <div>
+                <span>
+                  City
+                </span>
+
+                <strong>
+                  {formData.location || "Not specified"}
+                </strong>
+              </div>
+
+
+              <div>
+                <span>
+                  Human Resources
+                </span>
+
+                <strong>
+                  {formData.humanResources || "Not specified"}
+                </strong>
+              </div>
+
+
+              <div>
+                <span>
+                  Communication
+                </span>
+
+                <strong>
+                  {formData.communicationMethod || "Not specified"}
+                </strong>
+              </div>
+
+            </div>
+
+
+            {/* CHECKLIST */}
+
+            <div className="summary-checklist">
+
+              <span>
+                BEFORE POSTING
+              </span>
+
+
+              <p>
+                ✓ Clear requirement title
+              </p>
+
+
+              <p>
+                ✓ Requirement type selected
+              </p>
+
+
+              <p>
+                ✓ Detailed requirement description
+              </p>
+
+
+              <p>
+                ✓ Scope and deliverables defined
+              </p>
+
+
+              <p>
+                ✓ Budget and processing defined
+              </p>
+
+
+              <p>
+                ✓ Timeline mentioned
+              </p>
+
+
+              <p>
+                ✓ Human resources and skills mentioned
+              </p>
+
+
+              <p>
+                ✓ Tools and resources defined
+              </p>
+
+
+              <p>
+                ✓ Location and communication selected
+              </p>
+
+            </div>
+
+          </aside>
+
+        </section>
+
+      </main>
+
+
+      {/* ================= FOOTER ================= */}
+
+      <Footer />
+
+    </div>
   );
 }
 
