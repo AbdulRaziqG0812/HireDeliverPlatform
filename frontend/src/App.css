@@ -5720,7 +5720,7 @@ textarea {
 
 
 .footer-top .logo span {
-  color: #60a5fa;
+      color: var(--gold-400);
 }
 
 
@@ -6190,3 +6190,328 @@ textarea {
   }
 }
 
+/* =========================================================
+   HIREDELIVER AUTHENTICATION PAGES
+   Login + Signup
+   ========================================================= */
+
+
+/* =========================================================
+   ERROR MESSAGE
+   ========================================================= */
+
+.auth-error {
+  width: 100%;
+  box-sizing: border-box;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 11px 13px;
+  margin-bottom: 18px;
+
+  border: 1px solid #f2b8b5;
+  border-radius: 8px;
+
+  background: #fff6f5;
+  color: #b42318;
+
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.error-icon {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #b42318;
+  color: #ffffff;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   SUCCESS MESSAGE
+   ========================================================= */
+
+.auth-success {
+  width: 100%;
+  box-sizing: border-box;
+
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+
+  padding: 12px 14px;
+  margin-bottom: 18px;
+
+  border: 1px solid #b7e2c0;
+  border-radius: 9px;
+
+  background: #f1fbf3;
+  color: #176b2c;
+
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.auth-success strong {
+  display: block;
+
+  margin-bottom: 2px;
+
+  color: #176b2c;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.auth-success p {
+  margin: 0;
+
+  color: #367744;
+
+  font-size: 12px;
+}
+
+.success-icon {
+  width: 21px;
+  height: 21px;
+  min-width: 21px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #1f9d45;
+  color: #ffffff;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   PASSWORD FIELD
+   ========================================================= */
+
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+
+/*
+   Password input ko right side par eye icon ke liye
+   extra space diya gaya hai.
+*/
+
+.password-wrapper input {
+  width: 100%;
+  box-sizing: border-box;
+
+  padding-right: 45px;
+}
+
+
+/* =========================================================
+   PASSWORD SHOW / HIDE BUTTON
+   ========================================================= */
+
+.password-toggle {
+  position: absolute;
+
+  right: 11px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  width: 30px;
+  height: 30px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  background: transparent;
+
+  padding: 0;
+
+  cursor: pointer;
+
+  font-size: 16px;
+  line-height: 1;
+
+  opacity: 0.65;
+
+  transition: opacity 0.2s ease;
+}
+
+.password-toggle:hover {
+  opacity: 1;
+}
+
+.password-toggle:focus {
+  outline: none;
+}
+
+
+/* =========================================================
+   CONFIRM PASSWORD STATUS
+   ========================================================= */
+
+.confirm-password {
+  margin-top: 7px;
+
+  font-size: 12px;
+  font-weight: 500;
+
+  line-height: 1.3;
+}
+
+.confirm-password.valid {
+  color: #16803c;
+}
+
+.confirm-password.invalid {
+  color: #c62828;
+}
+
+
+/* =========================================================
+   PASSWORD REQUIREMENTS
+   Ye block Confirm Password ke neeche show hoga.
+   ========================================================= */
+
+.password-rules {
+  width: 100%;
+  box-sizing: border-box;
+
+  margin-top: 13px;
+  padding-top: 11px;
+
+  border-top: 1px solid #edf0f4;
+}
+
+
+/* Password requirements heading */
+
+.password-rules-heading {
+  margin-bottom: 7px;
+
+  color: #344054;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+
+/* Individual requirement */
+
+.password-rule {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  margin: 4px 0;
+
+  color: #8a94a6;
+
+  font-size: 11.5px;
+  line-height: 1.35;
+
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+
+/* Requirement circle */
+
+.rule-icon {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  color: #a7afbb;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+
+/* Completed requirement */
+
+.password-rule.completed {
+  color: #16803c;
+
+  font-weight: 500;
+}
+
+
+/* Green check circle */
+
+.password-rule.completed .rule-icon {
+  background: #e2f7e8;
+
+  color: #16803c;
+
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   DISABLED SUBMIT BUTTON
+   ========================================================= */
+
+.auth-primary-btn:disabled {
+  opacity: 0.7;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   MOBILE RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+  .auth-error,
+  .auth-success {
+    font-size: 12px;
+  }
+
+  .password-rules {
+    margin-top: 11px;
+  }
+
+  .password-rule {
+    font-size: 11px;
+  }
+
+}

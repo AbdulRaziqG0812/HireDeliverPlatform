@@ -6,8 +6,12 @@ import Hire from "./pages/Hire";
 import Deliver from "./pages/Deliver";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
+import AdminDashboard from "./pages/AdminDashboard";
+
+import ProtectedRoute from "./components/ProtectedRoute";
 
 import "./App.css";
+
 
 function App() {
   return (
@@ -15,17 +19,70 @@ function App() {
 
       <Routes>
 
-        <Route path="/" element={<Welcome />} />
+        {/* =================================================
+            PUBLIC PAGES
+        ================================================= */}
 
-        <Route path="/home" element={<Home />} />
+        <Route
+          path="/"
+          element={<Welcome />}
+        />
 
-        <Route path="/hire" element={<Hire />} />
+        <Route
+          path="/signup"
+          element={<Signup />}
+        />
 
-        <Route path="/deliver" element={<Deliver />} />
+        <Route
+          path="/login"
+          element={<Login />}
+        />
 
-        <Route path="/signup" element={<Signup />} />
 
-        <Route path="/login" element={<Login />} />
+        {/* =================================================
+            NORMAL USER PAGES
+        ================================================= */}
+
+        <Route
+          path="/home"
+          element={
+            <ProtectedRoute allowedRole="user">
+              <Home />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/hire"
+          element={
+            <ProtectedRoute allowedRole="user">
+              <Hire />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/deliver"
+          element={
+            <ProtectedRoute allowedRole="user">
+              <Deliver />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* =================================================
+            ADMIN PAGE
+        ================================================= */}
+
+        <Route
+          path="/admin-dashboard"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
 
       </Routes>
 

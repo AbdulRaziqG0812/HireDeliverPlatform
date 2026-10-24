@@ -9,38 +9,99 @@ function Login() {
     password: "",
   });
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
+
+    setError("");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
+    setError("");
+
     if (!formData.email || !formData.password) {
-      alert("Please enter your email and password.");
+      setError("Please enter your email and password.");
       return;
     }
 
-    // Temporary frontend-only login
-    const savedUser = localStorage.getItem("hireDeliverUser");
+    try {
+      setLoading(true);
 
-    if (savedUser) {
-      const user = JSON.parse(savedUser);
+      const response = await fetch(
+        "http://127.0.0.1:5000/api/auth/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+          }),
+        }
+      );
 
-      if (
-        formData.email !== user.email
-      ) {
-        alert("No account found with this email.");
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || "Invalid email or password.");
         return;
       }
+
+      // =====================================================
+      // SAVE LOGIN INFORMATION
+      // =====================================================
+
+      localStorage.setItem("hireDeliverLoggedIn", "true");
+
+      localStorage.setItem(
+        "hireDeliverUser",
+        JSON.stringify({
+          id: data.user.id || null,
+          fullName: data.user.name,
+          email: data.user.email,
+          phone: data.user.phone || "",
+          role: data.user.role,
+          accountType: data.account_type,
+        })
+      );
+
+      // =====================================================
+      // ADMIN LOGIN
+      // =====================================================
+
+      if (
+        data.account_type === "admin" ||
+        data.user.role === "admin"
+      ) {
+        navigate("/admin-dashboard");
+        return;
+      }
+
+      // =====================================================
+      // NORMAL USER LOGIN
+      // =====================================================
+
+      navigate("/home");
+
+    } catch (error) {
+      console.error("Login Error:", error);
+
+      setError(
+        "Unable to connect to the server. Please make sure the backend is running."
+      );
+
+    } finally {
+      setLoading(false);
     }
-
-    localStorage.setItem("hireDeliverLoggedIn", "true");
-
-    navigate("/home");
   };
 
   return (
@@ -59,6 +120,13 @@ function Login() {
 
         <form className="auth-form" onSubmit={handleSubmit}>
 
+          {error && (
+            <div className="auth-error">
+              <span className="error-icon">!</span>
+              <span>{error}</span>
+            </div>
+          )}
+
           <div className="form-group">
             <label>Email Address</label>
 
@@ -74,24 +142,38 @@ function Login() {
           <div className="form-group">
             <label>Password</label>
 
-            <input
-              type="password"
-              name="password"
-              placeholder="Enter your password"
-              value={formData.password}
-              onChange={handleChange}
-            />
+            <div className="password-wrapper">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                placeholder="Enter your password"
+                value={formData.password}
+                onChange={handleChange}
+              />
+
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={
+                  showPassword
+                    ? "Hide password"
+                    : "Show password"
+                }
+              >
+                {showPassword ? "🙈" : "👁"}
+              </button>
+            </div>
           </div>
 
-          <div className="forgot-password">
-            <a href="#forgot">
-              Forgot Password?
-            </a>
-          </div>
+          <button
+            type="submit"
+            className="auth-primary-btn"
+            disabled={loading}
+          >
+            {loading ? "Logging in..." : "Login"}
 
-          <button type="submit" className="auth-primary-btn">
-            Login
-            <span>→</span>
+            {!loading && <span>→</span>}
           </button>
 
         </form>

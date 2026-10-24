@@ -956,6 +956,96 @@ function Deliver() {
 
                     </div>
 
+                     {/* ================= FILE UPLOAD ================= */}
+
+              <div className="form-group">
+
+                <label>
+                  Upload Supporting Files
+                </label>
+
+                <div className="file-upload-box">
+
+                  <input
+                    type="file"
+                    id="delivery-files"
+                    multiple
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.zip"
+                    onChange={handleFileUpload}
+                  />
+
+                  <label
+                    htmlFor="delivery-files"
+                    className="file-upload-label"
+                  >
+                    <span className="upload-icon">
+                      ↑
+                    </span>
+
+                    <strong>
+                      Upload CV, Portfolio or Documents
+                    </strong>
+
+                    <small>
+                      PDF, Word, Excel, PowerPoint, Images or ZIP
+                    </small>
+                  </label>
+
+                </div>
+
+                {formData.uploadedFiles.length > 0 && (
+
+                  <div className="uploaded-files-list">
+
+                    {formData.uploadedFiles.map(
+                      (file, index) => (
+
+                        <div
+                          className="uploaded-file-item"
+                          key={`${file.name}-${index}`}
+                        >
+
+                          <div>
+                            <strong>
+                              {file.name}
+                            </strong>
+
+                            <small>
+                              {(
+                                file.size /
+                                1024 /
+                                1024
+                              ).toFixed(2)}{" "}
+                              MB
+                            </small>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              removeUploadedFile(index)
+                            }
+                          >
+                            Remove
+                          </button>
+
+                        </div>
+
+                      )
+                    )}
+
+                  </div>
+
+                )}
+
+                <small>
+                  You can upload CVs, certificates, previous work,
+                  company profiles or other supporting documents.
+                </small>
+
+              </div>
+
+
                     <div className="form-group">
 
                       <label>
@@ -991,6 +1081,8 @@ function Deliver() {
                 </button>
 
               </div>
+
+              
 
               {/* ================= 05 RESOURCES ================= */}
 
