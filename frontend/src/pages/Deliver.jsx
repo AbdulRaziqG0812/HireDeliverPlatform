@@ -78,13 +78,20 @@ const createTeamMember = () => ({
   skills: "",
   experience: "",
   profile: "",
+  profileFiles: [],
   similarExperience: "",
 });
 
 function Deliver() {
+
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("");
+  const [submitError, setSubmitError] = useState("");
 
   const [formData, setFormData] = useState({
     country: "Pakistan",
@@ -128,19 +135,418 @@ function Deliver() {
     communicationDetails: "",
   });
 
-  /* ================= GENERAL INPUT ================= */
+/* ================= GENERAL INPUT ================= */
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+const handleChange = (e) => {
+  const { name, value } = e.target;
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  setFormData((prev) => ({
+    ...prev,
+    [name]: value,
+  }));
+};
 
-  /* ================= FILE UPLOAD ================= */
 
+/* ================= SUBMIT FORM ================= */
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  setIsSubmitting(true);
+  setSubmitMessage("");
+  setSubmitError("");
+
+  try {
+    // Get JWT token from localStorage
+    const accessToken = localStorage.getItem(
+      "hireDeliverAccessToken"
+    );
+
+    // Check login token
+    if (!accessToken) {
+      setSubmitError(
+        "Your login session has expired. Please login again."
+      );
+
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Create FormData
+    const data = new FormData();
+
+    // =========================
+    // BASIC INFORMATION
+    // =========================
+
+    data.append(
+      "country",
+      formData.country
+    );
+
+    data.append(
+      "title",
+      formData.title
+    );
+
+    data.append(
+      "type",
+      formData.type
+    );
+
+    data.append(
+      "category",
+      formData.category
+    );
+
+    // =========================
+    // PROJECT DETAILS
+    // =========================
+
+    data.append(
+      "description",
+      formData.description
+    );
+
+    data.append(
+      "scope",
+      formData.scope
+    );
+
+    data.append(
+      "deliverables",
+      formData.deliverables
+    );
+
+    // =========================
+    // COST INFORMATION
+    // =========================
+
+    data.append(
+      "currency",
+      formData.currency
+    );
+
+    data.append(
+      "amount",
+      formData.amount
+    );
+
+    data.append(
+      "includedCost",
+      formData.includedCost
+    );
+
+    data.append(
+      "excludedCost",
+      formData.excludedCost
+    );
+
+    // =========================
+    // PROCESSING & TIMELINE
+    // =========================
+
+    data.append(
+      "processing",
+      formData.processing
+    );
+
+    data.append(
+      "standardTimeline",
+      formData.standardTimeline
+    );
+
+    data.append(
+      "urgentTimeline",
+      formData.urgentTimeline
+    );
+
+    // =========================
+    // TEAM MEMBERS
+    // =========================
+
+    const teamMembersForSubmit =
+      formData.teamMembers.map((member) => ({
+        name: member.name,
+        role: member.role,
+        skills: member.skills,
+        experience: member.experience,
+
+        // Save profile file names in team member record
+        profile: (member.profileFiles || [])
+          .map((file) => file.name)
+          .join(", "),
+
+        similarExperience:
+          member.similarExperience,
+      }));
+
+    data.append(
+      "teamMembers",
+      JSON.stringify(teamMembersForSubmit)
+    );
+
+    // =========================
+    // RESOURCES
+    // =========================
+
+    data.append(
+      "availableResources",
+      formData.availableResources
+    );
+
+    data.append(
+      "requiredResources",
+      formData.requiredResources
+    );
+
+    data.append(
+      "tools",
+      formData.tools
+    );
+
+    data.append(
+      "physicalResources",
+      formData.physicalResources
+    );
+
+    data.append(
+      "additionalResources",
+      formData.additionalResources
+    );
+
+    // =========================
+    // LOCATION
+    // =========================
+
+    data.append(
+      "city",
+      formData.city
+    );
+
+    data.append(
+      "fullLocation",
+      formData.fullLocation
+    );
+
+    // =========================
+    // PORTFOLIO
+    // =========================
+
+    data.append(
+      "portfolio",
+      formData.portfolio
+    );
+
+    // =========================
+    // NOTIFICATION
+    // =========================
+
+    data.append(
+      "notificationPeriod",
+      formData.notificationPeriod
+    );
+
+    data.append(
+      "notificationDetails",
+      formData.notificationDetails
+    );
+
+    // =========================
+    // COMMUNICATION
+    // =========================
+
+    data.append(
+      "communicationMethod",
+      formData.communicationMethod
+    );
+
+    data.append(
+      "communicationDetails",
+      formData.communicationDetails
+    );
+
+    // =========================
+    // SUPPORTING FILES
+    // =========================
+
+    // General supporting files
+    formData.uploadedFiles.forEach((file) => {
+      data.append(
+        "uploadedFiles",
+        file
+      );
+    });
+
+    // Team member profile files
+    formData.teamMembers.forEach((member) => {
+      (member.profileFiles || []).forEach((file) => {
+        data.append(
+          "uploadedFiles",
+          file
+        );
+      });
+    });
+
+    // =========================
+    // SEND REQUEST
+    // =========================
+
+    const response = await fetch(
+      "http://127.0.0.1:5000/api/deliver/submit",
+      {
+        method: "POST",
+
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+
+        // IMPORTANT:
+        // Do NOT manually set Content-Type.
+        // Browser automatically sets multipart/form-data
+        // boundary when using FormData.
+        body: data,
+      }
+    );
+
+    // =========================
+    // READ RESPONSE
+    // =========================
+
+    const result = await response.json();
+
+    // =========================
+    // AUTHENTICATION ERROR
+    // =========================
+
+    if (response.status === 401) {
+      localStorage.removeItem(
+        "hireDeliverAccessToken"
+      );
+
+      localStorage.removeItem(
+        "hireDeliverLoggedIn"
+      );
+
+      localStorage.removeItem(
+        "hireDeliverUser"
+      );
+
+      setSubmitError(
+        "Your login session has expired. Please login again."
+      );
+
+      setIsSubmitting(false);
+
+      return;
+    }
+
+    // =========================
+    // OTHER SERVER ERRORS
+    // =========================
+
+    if (!response.ok) {
+      throw new Error(
+        result.message ||
+        "Failed to submit delivery."
+      );
+    }
+
+    // =========================
+    // SUCCESS
+    // =========================
+
+    setSubmitMessage(
+      "Your delivery proposal has been submitted successfully. The form is now ready for a new submission."
+    );
+
+    // =========================
+    // RESET FORM
+    // =========================
+
+    setFormData({
+      country: "Pakistan",
+
+      title: "",
+      type: "",
+      category: "",
+
+      description: "",
+      scope: "",
+      deliverables: "",
+
+      currency: "PKR",
+      amount: "",
+
+      includedCost: "",
+      excludedCost: "",
+
+      processing: "",
+      standardTimeline: "",
+      urgentTimeline: "",
+
+      teamMembers: [
+        createTeamMember()
+      ],
+
+      availableResources: "",
+      requiredResources: "",
+
+      tools: "",
+      physicalResources: "",
+      additionalResources: "",
+
+      city: "",
+      fullLocation: "",
+
+      portfolio: "",
+
+      uploadedFiles: [],
+
+      notificationPeriod: "",
+      notificationDetails: "",
+
+      communicationMethod: "",
+      communicationDetails: "",
+    });
+
+    // =========================
+    // SCROLL TO TOP
+    // =========================
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+
+    console.log(
+      "Deliver submission:",
+      result
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Deliver submission error:",
+      error
+    );
+
+    setSubmitError(
+      error.message ||
+      "Something went wrong while submitting."
+    );
+
+  } finally {
+
+    setIsSubmitting(false);
+
+  }
+};
+
+
+/* ================= FILE UPLOAD ================= */
+
+  // Files uploaded here belong to the complete delivery proposal.
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files || []);
 
@@ -159,6 +565,48 @@ function Deliver() {
         (_, fileIndex) => fileIndex !== index
       ),
     }));
+  };
+
+  // Each team member has separate CV/profile files.
+  const handleTeamMemberFileUpload = (memberIndex, e) => {
+    const files = Array.from(e.target.files || []);
+
+    setFormData((prev) => {
+      const updatedMembers = [...prev.teamMembers];
+
+      updatedMembers[memberIndex] = {
+        ...updatedMembers[memberIndex],
+        profileFiles: [
+          ...(updatedMembers[memberIndex].profileFiles || []),
+          ...files,
+        ],
+      };
+
+      return {
+        ...prev,
+        teamMembers: updatedMembers,
+      };
+    });
+
+    e.target.value = "";
+  };
+
+  const removeTeamMemberFile = (memberIndex, fileIndex) => {
+    setFormData((prev) => {
+      const updatedMembers = [...prev.teamMembers];
+
+      updatedMembers[memberIndex] = {
+        ...updatedMembers[memberIndex],
+        profileFiles: (
+          updatedMembers[memberIndex].profileFiles || []
+        ).filter((_, index) => index !== fileIndex),
+      };
+
+      return {
+        ...prev,
+        teamMembers: updatedMembers,
+      };
+    });
   };
 
   /* ================= TEAM MEMBERS ================= */
@@ -282,6 +730,18 @@ function Deliver() {
           </div>
 
         </section>
+        {submitMessage && (
+          <div className="submit-success">
+            {submitMessage}
+          </div>
+        )}
+
+        {submitError && (
+          <div className="submit-error">
+            {submitError}
+          </div>
+        )}
+
 
         {/* ================= WORKSPACE ================= */}
 
@@ -389,7 +849,7 @@ function Deliver() {
 
             <form
               className="requirement-form"
-              onSubmit={(e) => e.preventDefault()}
+              onSubmit={handleSubmit}
             >
 
               {/* ================= 01 BASIC INFORMATION ================= */}
@@ -956,95 +1416,99 @@ function Deliver() {
 
                     </div>
 
-                     {/* ================= FILE UPLOAD ================= */}
+                      {/* ================= TEAM MEMBER PROFILE ================= */}
 
-              <div className="form-group">
+                      <div className="form-group">
 
-                <label>
-                  Upload Supporting Files
-                </label>
+                        <label>
+                          Team Member CV / Profile Documents
+                        </label>
 
-                <div className="file-upload-box">
+                        <small>
+                          Upload this member's CV, profile, certificates
+                          or previous-work documents.
+                        </small>
 
-                  <input
-                    type="file"
-                    id="delivery-files"
-                    multiple
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.zip"
-                    onChange={handleFileUpload}
-                  />
+                        <div className="file-upload-box">
 
-                  <label
-                    htmlFor="delivery-files"
-                    className="file-upload-label"
-                  >
-                    <span className="upload-icon">
-                      ↑
-                    </span>
+                          <input
+                            type="file"
+                            id={`team-member-files-${index}`}
+                            multiple
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.zip"
+                            onChange={(e) =>
+                              handleTeamMemberFileUpload(index, e)
+                            }
+                          />
 
-                    <strong>
-                      Upload CV, Portfolio or Documents
-                    </strong>
+                          <label
+                            htmlFor={`team-member-files-${index}`}
+                            className="file-upload-label"
+                          >
+                            <span className="upload-icon">
+                              ↑
+                            </span>
 
-                    <small>
-                      PDF, Word, Excel, PowerPoint, Images or ZIP
-                    </small>
-                  </label>
-
-                </div>
-
-                {formData.uploadedFiles.length > 0 && (
-
-                  <div className="uploaded-files-list">
-
-                    {formData.uploadedFiles.map(
-                      (file, index) => (
-
-                        <div
-                          className="uploaded-file-item"
-                          key={`${file.name}-${index}`}
-                        >
-
-                          <div>
                             <strong>
-                              {file.name}
+                              Upload This Member's CV / Profile
                             </strong>
 
                             <small>
-                              {(
-                                file.size /
-                                1024 /
-                                1024
-                              ).toFixed(2)}{" "}
-                              MB
+                              PDF, Word, Excel, PowerPoint, Images or ZIP
                             </small>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              removeUploadedFile(index)
-                            }
-                          >
-                            Remove
-                          </button>
+                          </label>
 
                         </div>
 
-                      )
-                    )}
+                        {(member.profileFiles || []).length > 0 && (
 
-                  </div>
+                          <div className="uploaded-files-list">
 
-                )}
+                            {member.profileFiles.map(
+                              (file, fileIndex) => (
 
-                <small>
-                  You can upload CVs, certificates, previous work,
-                  company profiles or other supporting documents.
-                </small>
+                                <div
+                                  className="uploaded-file-item"
+                                  key={`${file.name}-${fileIndex}`}
+                                >
 
-              </div>
+                                  <div>
+                                    <strong>
+                                      {file.name}
+                                    </strong>
 
+                                    <small>
+                                      {(
+                                        file.size /
+                                        1024 /
+                                        1024
+                                      ).toFixed(2)}{" "}
+                                      MB
+                                    </small>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      removeTeamMemberFile(
+                                        index,
+                                        fileIndex
+                                      )
+                                    }
+                                  >
+                                    Remove
+                                  </button>
+
+                                </div>
+
+                              )
+                            )}
+
+                          </div>
+
+                        )}
+
+                      </div>
 
                     <div className="form-group">
 
@@ -1247,26 +1711,32 @@ function Deliver() {
 
               </div>
 
-              {/* ================= FILE UPLOAD ================= */}
+              {/* ================= DELIVERY SUPPORTING DOCUMENTS ================= */}
 
               <div className="form-group">
 
                 <label>
-                  Upload Supporting Files
+                  Delivery Supporting Documents
                 </label>
+
+                <small>
+                  Upload documents related to the complete delivery proposal,
+                  such as project samples, company profiles, certificates,
+                  previous work or other supporting documents.
+                </small>
 
                 <div className="file-upload-box">
 
                   <input
                     type="file"
-                    id="delivery-files"
+                    id="delivery-supporting-files"
                     multiple
                     accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.zip"
                     onChange={handleFileUpload}
                   />
 
                   <label
-                    htmlFor="delivery-files"
+                    htmlFor="delivery-supporting-files"
                     className="file-upload-label"
                   >
                     <span className="upload-icon">
@@ -1274,7 +1744,7 @@ function Deliver() {
                     </span>
 
                     <strong>
-                      Upload CV, Portfolio or Documents
+                      Upload Delivery Supporting Documents
                     </strong>
 
                     <small>
@@ -1328,11 +1798,6 @@ function Deliver() {
                   </div>
 
                 )}
-
-                <small>
-                  You can upload CVs, certificates, previous work,
-                  company profiles or other supporting documents.
-                </small>
 
               </div>
 
@@ -1479,8 +1944,11 @@ function Deliver() {
                 <button
                   type="submit"
                   className="primary-btn"
-                >
-                  Publish Delivery →
+                  disabled={isSubmitting}
+                 >
+                  {isSubmitting
+                    ? "Publishing..."
+                    : "Publish Delivery →"}
                 </button>
 
               </div>

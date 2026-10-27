@@ -52,15 +52,36 @@ function Login() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message || "Invalid email or password.");
+        setError(
+          data.message || "Invalid email or password."
+        );
         return;
       }
+
+      // =====================================================
+      // SAVE JWT ACCESS TOKEN
+      // =====================================================
+
+      if (!data.access_token) {
+        setError(
+          "Login successful, but authentication token was not received."
+        );
+        return;
+      }
+
+      localStorage.setItem(
+        "hireDeliverAccessToken",
+        data.access_token
+      );
 
       // =====================================================
       // SAVE LOGIN INFORMATION
       // =====================================================
 
-      localStorage.setItem("hireDeliverLoggedIn", "true");
+      localStorage.setItem(
+        "hireDeliverLoggedIn",
+        "true"
+      );
 
       localStorage.setItem(
         "hireDeliverUser",
@@ -109,7 +130,9 @@ function Login() {
       <div className="auth-container">
 
         <div className="auth-header">
-          <span className="auth-badge">HIREDELIVER</span>
+          <span className="auth-badge">
+            HIREDELIVER
+          </span>
 
           <h1>Welcome Back</h1>
 
@@ -118,17 +141,27 @@ function Login() {
           </p>
         </div>
 
-        <form className="auth-form" onSubmit={handleSubmit}>
+        <form
+          className="auth-form"
+          onSubmit={handleSubmit}
+        >
 
           {error && (
             <div className="auth-error">
-              <span className="error-icon">!</span>
-              <span>{error}</span>
+              <span className="error-icon">
+                !
+              </span>
+
+              <span>
+                {error}
+              </span>
             </div>
           )}
 
           <div className="form-group">
-            <label>Email Address</label>
+            <label>
+              Email Address
+            </label>
 
             <input
               type="email"
@@ -140,11 +173,18 @@ function Login() {
           </div>
 
           <div className="form-group">
-            <label>Password</label>
+            <label>
+              Password
+            </label>
 
             <div className="password-wrapper">
+
               <input
-                type={showPassword ? "text" : "password"}
+                type={
+                  showPassword
+                    ? "text"
+                    : "password"
+                }
                 name="password"
                 placeholder="Enter your password"
                 value={formData.password}
@@ -154,7 +194,9 @@ function Login() {
               <button
                 type="button"
                 className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
+                onClick={() =>
+                  setShowPassword(!showPassword)
+                }
                 aria-label={
                   showPassword
                     ? "Hide password"
@@ -163,6 +205,7 @@ function Login() {
               >
                 {showPassword ? "🙈" : "👁"}
               </button>
+
             </div>
           </div>
 
@@ -171,25 +214,35 @@ function Login() {
             className="auth-primary-btn"
             disabled={loading}
           >
-            {loading ? "Logging in..." : "Login"}
+            {loading
+              ? "Logging in..."
+              : "Login"}
 
-            {!loading && <span>→</span>}
+            {!loading && (
+              <span>→</span>
+            )}
           </button>
 
         </form>
 
         <div className="auth-footer">
-          <span>Don't have an account?</span>
+
+          <span>
+            Don't have an account?
+          </span>
 
           <Link to="/signup">
             Create Account
           </Link>
+
         </div>
 
         <div className="auth-back">
+
           <Link to="/">
             ← Back to Welcome
           </Link>
+
         </div>
 
       </div>

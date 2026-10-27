@@ -1,11 +1,15 @@
 from flask import Flask
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager
+
 from config import Config
 from extensions import db
 
 app = Flask(__name__)
 
 app.config.from_object(Config)
+
+jwt = JWTManager(app)
 
 CORS(app)
 
@@ -18,10 +22,19 @@ import models
 
 # Import routes
 from routes.auth import auth_bp
+from routes.deliver import deliver_bp
 
 
 # Register routes
-app.register_blueprint(auth_bp, url_prefix="/api/auth")
+app.register_blueprint(
+    auth_bp,
+    url_prefix="/api/auth"
+)
+
+app.register_blueprint(
+    deliver_bp,
+    url_prefix="/api/deliver"
+)
 
 
 @app.route("/")

@@ -1,6 +1,8 @@
 from flask import Blueprint, request
 from werkzeug.security import generate_password_hash
 
+from flask_jwt_extended import create_access_token
+
 from extensions import db
 from models.user import User
 from config import Config
@@ -101,10 +103,21 @@ def login():
         and password == Config.ADMIN_PASSWORD
     ):
 
+        # -------------------------------------------------
+        # Create JWT token for admin
+        # -------------------------------------------------
+        access_token = create_access_token(
+            identity="admin",
+            additional_claims={
+                "role": "admin"
+            }
+        )
+
         return {
             "message": "Admin login successful",
             "status": "success",
             "account_type": "admin",
+            "access_token": access_token,
             "user": {
                 "name": "Administrator",
                 "email": email,
@@ -138,12 +151,23 @@ def login():
         }, 401
 
     # -----------------------------------------------------
+    # Create JWT token for normal user
+    # -----------------------------------------------------
+    access_token = create_access_token(
+        identity=str(user.id),
+        additional_claims={
+            "role": user.role
+        }
+    )
+
+    # -----------------------------------------------------
     # Normal user login successful
     # -----------------------------------------------------
     return {
         "message": "Login successful",
         "status": "success",
         "account_type": "user",
+        "access_token": access_token,
         "user": {
             "id": user.id,
             "name": user.name,
