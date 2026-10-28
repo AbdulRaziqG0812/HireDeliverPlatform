@@ -7,7 +7,7 @@ import Deliver from "./pages/Deliver";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
-
+import UserDashboard from "./pages/UserDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 import "./App.css";
@@ -48,6 +48,15 @@ function App() {
           element={
             <ProtectedRoute allowedRole="user">
               <Home />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute allowedRole="user">
+              <UserDashboard />
             </ProtectedRoute>
           }
         />

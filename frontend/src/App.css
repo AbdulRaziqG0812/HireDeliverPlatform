@@ -6515,3 +6515,59 @@ textarea {
   }
 
 }
+
+/* ===============================
+   SUBMISSION MESSAGE
+================================ */
+
+.submit-success,
+.submit-error {
+  width: 100%;
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 16px 20px;
+
+  border-radius: 10px;
+
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.6;
+
+  text-align: center;
+
+  box-sizing: border-box;
+}
+
+/* SUCCESS */
+
+.submit-success {
+  background: #ecfdf3;
+  border: 1px solid #86efac;
+  color: #166534;
+
+  box-shadow: 0 4px 12px rgba(22, 101, 52, 0.08);
+}
+
+/* ERROR */
+
+.submit-error {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+
+  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.08);
+}
+
+/* MOBILE */
+
+@media (max-width: 768px) {
+
+  .submit-success,
+  .submit-error {
+    width: calc(100% - 30px);
+    margin: 16px auto;
+    padding: 14px 16px;
+    font-size: 14px;
+  }
+
+}

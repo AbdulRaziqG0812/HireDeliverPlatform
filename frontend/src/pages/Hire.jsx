@@ -33,6 +33,9 @@ function Hire() {
   });
 
   const [files, setFiles] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("");
+  const [submitError, setSubmitError] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -46,6 +49,122 @@ function Hire() {
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
     setFiles(selectedFiles);
+  };
+
+  /* ================= SUBMIT FORM ================= */
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    setIsSubmitting(true);
+    setSubmitMessage("");
+    setSubmitError("");
+
+    try {
+      const accessToken = localStorage.getItem("hireDeliverAccessToken");
+
+      if (!accessToken) {
+        setSubmitError("Your login session has expired. Please login again.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const data = new FormData();
+
+      data.append("title", formData.title);
+      data.append("type", formData.type);
+      data.append("category", formData.category);
+      data.append("description", formData.description);
+      data.append("scope", formData.scope);
+      data.append("deliverables", formData.deliverables);
+      data.append("budget", formData.budget);
+      data.append("processing", formData.processing);
+      data.append("standardTimeline", formData.standardTimeline);
+      data.append("urgentTimeline", formData.urgentTimeline);
+      data.append("humanResources", formData.humanResources);
+      data.append("roles", formData.roles);
+      data.append("skills", formData.skills);
+      data.append("tools", formData.tools);
+      data.append("physicalResources", formData.physicalResources);
+      data.append("additionalResources", formData.additionalResources);
+      data.append("location", formData.location);
+      data.append("fullLocation", formData.fullLocation);
+      data.append("communicationMethod", formData.communicationMethod);
+      data.append("notificationPeriod", formData.notificationPeriod);
+
+      files.forEach((file) => {
+        data.append("uploadedFiles", file);
+      });
+
+      const response = await fetch("http://127.0.0.1:5000/api/hire/submit", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: data,
+      });
+
+      const result = await response.json();
+
+      if (response.status === 401) {
+        localStorage.removeItem("hireDeliverAccessToken");
+        localStorage.removeItem("hireDeliverLoggedIn");
+        localStorage.removeItem("hireDeliverUser");
+        setSubmitError("Your login session has expired. Please login again.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to submit requirement.");
+      }
+
+      setSubmitMessage(
+        "Your hire requirement has been submitted successfully. The form is now ready for a new submission."
+      );
+
+      setFormData({
+        title: "",
+        type: "",
+        category: "",
+        description: "",
+        scope: "",
+        deliverables: "",
+        budget: "",
+        processing: "",
+        standardTimeline: "",
+        urgentTimeline: "",
+        humanResources: "",
+        roles: "",
+        skills: "",
+        tools: "",
+        physicalResources: "",
+        additionalResources: "",
+        location: "",
+        fullLocation: "",
+        communicationMethod: "",
+        notificationPeriod: "",
+      });
+
+      setFiles([]);
+
+      const fileInput = document.getElementById("hireFiles");
+      if (fileInput) {
+        fileInput.value = "";
+      }
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      console.log("Hire submission:", result);
+
+    } catch (error) {
+      console.error("Hire submission error:", error);
+      setSubmitError(
+        error.message ||
+        "Something went wrong while submitting the requirement."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const filledFields = Object.values(formData).filter(
@@ -214,10 +333,21 @@ function Hire() {
 
             </div>
 
+            {submitMessage && (
+              <div className="submit-success">
+                {submitMessage}
+              </div>
+            )}
+
+            {submitError && (
+              <div className="submit-error">
+                {submitError}
+              </div>
+            )}
 
             <form
               className="requirement-form"
-              onSubmit={(e) => e.preventDefault()}
+              onSubmit={handleSubmit}
             >
 
 
@@ -1016,8 +1146,9 @@ function Hire() {
                 <button
                   type="submit"
                   className="primary-btn"
+                  disabled={isSubmitting}
                 >
-                  Post Requirement →
+                  {isSubmitting ? "Submitting..." : "Post Requirement →"}
                 </button>
 
               </div>

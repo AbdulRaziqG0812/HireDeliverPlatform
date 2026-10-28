@@ -23,6 +23,8 @@ import models
 # Import routes
 from routes.auth import auth_bp
 from routes.deliver import deliver_bp
+from routes.hire import hire_bp
+from routes.dashboard import dashboard_bp
 
 
 # Register routes
@@ -34,6 +36,16 @@ app.register_blueprint(
 app.register_blueprint(
     deliver_bp,
     url_prefix="/api/deliver"
+)
+
+app.register_blueprint(
+    hire_bp,
+    url_prefix="/api/hire"
+)
+
+app.register_blueprint(
+    dashboard_bp,
+    url_prefix="/api/dashboard"
 )
 
 
