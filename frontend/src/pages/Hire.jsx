@@ -208,6 +208,14 @@ function Hire() {
           </div>
 
           <div className="header-status">
+            <Link
+            to="/dashboard"
+            className="form-dashboard-btn"
+            >
+            <span>←</span>
+            Dashboard
+            </Link>
+            
             <span className="status-dot"></span>
             New Requirement
           </div>

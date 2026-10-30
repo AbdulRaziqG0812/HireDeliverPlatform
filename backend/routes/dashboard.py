@@ -88,6 +88,7 @@ def get_dashboard():
 
             "id": hire.id,
 
+
             "title": hire.title,
 
             "type": hire.type,
@@ -127,6 +128,8 @@ def get_dashboard():
             "communication_method": hire.communication_method,
 
             "notification_period": hire.notification_period,
+
+            "status": hire.status,
 
             "files": hire_files,
 
@@ -294,6 +297,8 @@ def get_dashboard():
             "communication_details": (
                 deliver.communication_details
             ),
+
+            "status": deliver.status,
 
             "team_members": team,
 

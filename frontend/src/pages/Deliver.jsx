@@ -708,23 +708,35 @@ const handleSubmit = async (e) => {
 
         <section className="deliver-header">
 
-          <div>
-            <span className="page-badge">
-              DELIVER
-            </span>
+          <div className="deliver-header-content">
 
-            <h1>
-              Create Your <span>Delivery Profile</span>
-            </h1>
+            <div className="deliver-title-area">
+              <span className="page-badge">
+                DELIVER
+              </span>
 
-            <p>
-              Tell potential clients what your team can deliver,
-              where you can deliver it, your available resources,
-              cost, timeline and team expertise.
-            </p>
+              <h1>
+                Create Your <span>Delivery Profile</span>
+              </h1>
+
+              <p>
+                Tell potential clients what your team can deliver,
+                where you can deliver it, your available resources,
+                cost, timeline and team expertise.
+              </p>
+            </div>
+
           </div>
 
           <div className="header-status">
+            <Link
+              to="/dashboard"
+              className="form-dashboard-btn"
+            >
+              <span>←</span>
+              Dashboard
+            </Link>
+            
             <span className="status-dot"></span>
             Delivery Proposal
           </div>
@@ -1094,12 +1106,12 @@ const handleSubmit = async (e) => {
                   onChange={handleChange}
                   rows="5"
                   placeholder={`Example:
-1. UI/UX Design
-2. Frontend Development
-3. Backend Development
-4. Database Integration
-5. Testing
-6. Deployment`}
+                  1. UI/UX Design
+                  2. Frontend Development
+                  3. Backend Development
+                  4. Database Integration
+                  5. Testing
+                  6. Deployment`}
                 />
 
               </div>

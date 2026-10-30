@@ -135,6 +135,12 @@ class DeliverProposal(db.Model):
         db.String(255)
     )
 
+    status = db.Column(
+        db.String(30),
+        nullable=False,
+        default="Pending"
+    )
+
     created_at = db.Column(
         db.DateTime,
         server_default=db.func.now()

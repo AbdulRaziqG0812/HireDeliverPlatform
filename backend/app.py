@@ -25,6 +25,7 @@ from routes.auth import auth_bp
 from routes.deliver import deliver_bp
 from routes.hire import hire_bp
 from routes.dashboard import dashboard_bp
+from routes.admin import admin_bp
 
 
 # Register routes
@@ -46,6 +47,11 @@ app.register_blueprint(
 app.register_blueprint(
     dashboard_bp,
     url_prefix="/api/dashboard"
+)
+
+app.register_blueprint(
+    admin_bp,
+    url_prefix="/api/admin"
 )
 
 
