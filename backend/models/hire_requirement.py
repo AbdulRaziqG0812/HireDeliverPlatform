@@ -18,6 +18,12 @@ class HireRequirement(db.Model):
         nullable=False
     )
 
+    country = db.Column(
+    db.String(100),
+    nullable=False,
+    default="Pakistan"
+    )
+
     title = db.Column(
         db.String(255),
         nullable=False
@@ -44,6 +50,12 @@ class HireRequirement(db.Model):
 
     deliverables = db.Column(
         db.Text
+    )
+
+    currency = db.Column(
+        db.String(100),
+        nullable=False,
+        default="PKR - Pakistani Rupee"
     )
 
     budget = db.Column(

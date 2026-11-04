@@ -1,8 +1,1011 @@
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+
+/* =========================================================
+   WORLD COUNTRIES
+========================================================= */
+
+const COUNTRIES = [
+  "Afghanistan",
+  "Albania",
+  "Algeria",
+  "Andorra",
+  "Angola",
+  "Antigua and Barbuda",
+  "Argentina",
+  "Armenia",
+  "Australia",
+  "Austria",
+  "Azerbaijan",
+  "Bahamas",
+  "Bahrain",
+  "Bangladesh",
+  "Barbados",
+  "Belarus",
+  "Belgium",
+  "Belize",
+  "Benin",
+  "Bhutan",
+  "Bolivia",
+  "Bosnia and Herzegovina",
+  "Botswana",
+  "Brazil",
+  "Brunei",
+  "Bulgaria",
+  "Burkina Faso",
+  "Burundi",
+  "Cabo Verde",
+  "Cambodia",
+  "Cameroon",
+  "Canada",
+  "Central African Republic",
+  "Chad",
+  "Chile",
+  "China",
+  "Colombia",
+  "Comoros",
+  "Congo",
+  "Costa Rica",
+  "Croatia",
+  "Cuba",
+  "Cyprus",
+  "Czech Republic",
+  "Democratic Republic of the Congo",
+  "Denmark",
+  "Djibouti",
+  "Dominica",
+  "Dominican Republic",
+  "Ecuador",
+  "Egypt",
+  "El Salvador",
+  "Equatorial Guinea",
+  "Eritrea",
+  "Estonia",
+  "Eswatini",
+  "Ethiopia",
+  "Fiji",
+  "Finland",
+  "France",
+  "Gabon",
+  "Gambia",
+  "Georgia",
+  "Germany",
+  "Ghana",
+  "Greece",
+  "Grenada",
+  "Guatemala",
+  "Guinea",
+  "Guinea-Bissau",
+  "Guyana",
+  "Haiti",
+  "Honduras",
+  "Hungary",
+  "Iceland",
+  "India",
+  "Indonesia",
+  "Iran",
+  "Iraq",
+  "Ireland",
+  "Israel",
+  "Italy",
+  "Jamaica",
+  "Japan",
+  "Jordan",
+  "Kazakhstan",
+  "Kenya",
+  "Kiribati",
+  "Kuwait",
+  "Kyrgyzstan",
+  "Laos",
+  "Latvia",
+  "Lebanon",
+  "Lesotho",
+  "Liberia",
+  "Libya",
+  "Liechtenstein",
+  "Lithuania",
+  "Luxembourg",
+  "Madagascar",
+  "Malawi",
+  "Malaysia",
+  "Maldives",
+  "Mali",
+  "Malta",
+  "Marshall Islands",
+  "Mauritania",
+  "Mauritius",
+  "Mexico",
+  "Micronesia",
+  "Moldova",
+  "Monaco",
+  "Mongolia",
+  "Montenegro",
+  "Morocco",
+  "Mozambique",
+  "Myanmar",
+  "Namibia",
+  "Nauru",
+  "Nepal",
+  "Netherlands",
+  "New Zealand",
+  "Nicaragua",
+  "Niger",
+  "Nigeria",
+  "North Korea",
+  "North Macedonia",
+  "Norway",
+  "Oman",
+  "Pakistan",
+  "Palau",
+  "Palestine",
+  "Panama",
+  "Papua New Guinea",
+  "Paraguay",
+  "Peru",
+  "Philippines",
+  "Poland",
+  "Portugal",
+  "Qatar",
+  "Romania",
+  "Russia",
+  "Rwanda",
+  "Saint Kitts and Nevis",
+  "Saint Lucia",
+  "Saint Vincent and the Grenadines",
+  "Samoa",
+  "San Marino",
+  "Sao Tome and Principe",
+  "Saudi Arabia",
+  "Senegal",
+  "Serbia",
+  "Seychelles",
+  "Sierra Leone",
+  "Singapore",
+  "Slovakia",
+  "Slovenia",
+  "Solomon Islands",
+  "Somalia",
+  "South Africa",
+  "South Korea",
+  "South Sudan",
+  "Spain",
+  "Sri Lanka",
+  "Sudan",
+  "Suriname",
+  "Sweden",
+  "Switzerland",
+  "Syria",
+  "Taiwan",
+  "Tajikistan",
+  "Tanzania",
+  "Thailand",
+  "Timor-Leste",
+  "Togo",
+  "Tonga",
+  "Trinidad and Tobago",
+  "Tunisia",
+  "Turkey",
+  "Turkmenistan",
+  "Tuvalu",
+  "Uganda",
+  "Ukraine",
+  "United Arab Emirates",
+  "United Kingdom",
+  "United States",
+  "Uruguay",
+  "Uzbekistan",
+  "Vanuatu",
+  "Vatican City",
+  "Venezuela",
+  "Vietnam",
+  "Yemen",
+  "Zambia",
+  "Zimbabwe",
+];
+
+/* =========================================================
+   WORLD CURRENCIES
+========================================================= */
+
+const CURRENCIES = [
+  "AED - United Arab Emirates Dirham",
+  "AFN - Afghan Afghani",
+  "ALL - Albanian Lek",
+  "AMD - Armenian Dram",
+  "ANG - Netherlands Antillean Guilder",
+  "AOA - Angolan Kwanza",
+  "ARS - Argentine Peso",
+  "AUD - Australian Dollar",
+  "AWG - Aruban Florin",
+  "AZN - Azerbaijani Manat",
+  "BAM - Bosnia and Herzegovina Convertible Mark",
+  "BBD - Barbadian Dollar",
+  "BDT - Bangladeshi Taka",
+  "BGN - Bulgarian Lev",
+  "BHD - Bahraini Dinar",
+  "BIF - Burundian Franc",
+  "BMD - Bermudian Dollar",
+  "BND - Brunei Dollar",
+  "BOB - Bolivian Boliviano",
+  "BRL - Brazilian Real",
+  "BSD - Bahamian Dollar",
+  "BTN - Bhutanese Ngultrum",
+  "BWP - Botswana Pula",
+  "BYN - Belarusian Ruble",
+  "BZD - Belize Dollar",
+  "CAD - Canadian Dollar",
+  "CDF - Congolese Franc",
+  "CHF - Swiss Franc",
+  "CLP - Chilean Peso",
+  "CNY - Chinese Yuan",
+  "COP - Colombian Peso",
+  "CRC - Costa Rican Colon",
+  "CUP - Cuban Peso",
+  "CVE - Cape Verdean Escudo",
+  "CZK - Czech Koruna",
+  "DJF - Djiboutian Franc",
+  "DKK - Danish Krone",
+  "DOP - Dominican Peso",
+  "DZD - Algerian Dinar",
+  "EGP - Egyptian Pound",
+  "ERN - Eritrean Nakfa",
+  "ETB - Ethiopian Birr",
+  "EUR - Euro",
+  "FJD - Fijian Dollar",
+  "FKP - Falkland Islands Pound",
+  "GBP - British Pound Sterling",
+  "GEL - Georgian Lari",
+  "GHS - Ghanaian Cedi",
+  "GIP - Gibraltar Pound",
+  "GMD - Gambian Dalasi",
+  "GNF - Guinean Franc",
+  "GTQ - Guatemalan Quetzal",
+  "GYD - Guyanese Dollar",
+  "HKD - Hong Kong Dollar",
+  "HNL - Honduran Lempira",
+  "HRK - Croatian Kuna",
+  "HTG - Haitian Gourde",
+  "HUF - Hungarian Forint",
+  "IDR - Indonesian Rupiah",
+  "ILS - Israeli New Shekel",
+  "INR - Indian Rupee",
+  "IQD - Iraqi Dinar",
+  "IRR - Iranian Rial",
+  "ISK - Icelandic Krona",
+  "JMD - Jamaican Dollar",
+  "JOD - Jordanian Dinar",
+  "JPY - Japanese Yen",
+  "KES - Kenyan Shilling",
+  "KGS - Kyrgyzstani Som",
+  "KHR - Cambodian Riel",
+  "KMF - Comorian Franc",
+  "KPW - North Korean Won",
+  "KRW - South Korean Won",
+  "KWD - Kuwaiti Dinar",
+  "KYD - Cayman Islands Dollar",
+  "KZT - Kazakhstani Tenge",
+  "LAK - Lao Kip",
+  "LBP - Lebanese Pound",
+  "LKR - Sri Lankan Rupee",
+  "LRD - Liberian Dollar",
+  "LSL - Lesotho Loti",
+  "LYD - Libyan Dinar",
+  "MAD - Moroccan Dirham",
+  "MDL - Moldovan Leu",
+  "MGA - Malagasy Ariary",
+  "MKD - Macedonian Denar",
+  "MMK - Myanmar Kyat",
+  "MNT - Mongolian Tugrik",
+  "MOP - Macanese Pataca",
+  "MRU - Mauritanian Ouguiya",
+  "MUR - Mauritian Rupee",
+  "MVR - Maldivian Rufiyaa",
+  "MWK - Malawian Kwacha",
+  "MXN - Mexican Peso",
+  "MYR - Malaysian Ringgit",
+  "MZN - Mozambican Metical",
+  "NAD - Namibian Dollar",
+  "NGN - Nigerian Naira",
+  "NIO - Nicaraguan Cordoba",
+  "NOK - Norwegian Krone",
+  "NPR - Nepalese Rupee",
+  "NZD - New Zealand Dollar",
+  "OMR - Omani Rial",
+  "PAB - Panamanian Balboa",
+  "PEN - Peruvian Sol",
+  "PGK - Papua New Guinean Kina",
+  "PHP - Philippine Peso",
+  "PKR - Pakistani Rupee",
+  "PLN - Polish Zloty",
+  "PYG - Paraguayan Guarani",
+  "QAR - Qatari Riyal",
+  "RON - Romanian Leu",
+  "RSD - Serbian Dinar",
+  "RUB - Russian Ruble",
+  "RWF - Rwandan Franc",
+  "SAR - Saudi Riyal",
+  "SBD - Solomon Islands Dollar",
+  "SCR - Seychellois Rupee",
+  "SDG - Sudanese Pound",
+  "SEK - Swedish Krona",
+  "SGD - Singapore Dollar",
+  "SHP - Saint Helena Pound",
+  "SLE - Sierra Leonean Leone",
+  "SOS - Somali Shilling",
+  "SRD - Surinamese Dollar",
+  "SSP - South Sudanese Pound",
+  "STN - Sao Tome and Principe Dobra",
+  "SVC - Salvadoran Colon",
+  "SYP - Syrian Pound",
+  "SZL - Eswatini Lilangeni",
+  "THB - Thai Baht",
+  "TJS - Tajikistani Somoni",
+  "TMT - Turkmenistani Manat",
+  "TND - Tunisian Dinar",
+  "TOP - Tongan Paanga",
+  "TRY - Turkish Lira",
+  "TTD - Trinidad and Tobago Dollar",
+  "TWD - New Taiwan Dollar",
+  "TZS - Tanzanian Shilling",
+  "UAH - Ukrainian Hryvnia",
+  "UGX - Ugandan Shilling",
+  "USD - United States Dollar",
+  "UYU - Uruguayan Peso",
+  "UZS - Uzbekistani Som",
+  "VES - Venezuelan Bolivar",
+  "VND - Vietnamese Dong",
+  "VUV - Vanuatu Vatu",
+  "WST - Samoan Tala",
+  "XAF - Central African CFA Franc",
+  "XCD - East Caribbean Dollar",
+  "XOF - West African CFA Franc",
+  "XPF - CFP Franc",
+  "YER - Yemeni Rial",
+  "ZAR - South African Rand",
+  "ZMW - Zambian Kwacha",
+  "ZWL - Zimbabwean Dollar",
+];
+
+/* =========================================================
+   FALLBACK CITY LIST
+========================================================= */
+
+const FALLBACK_CITIES = {
+  Pakistan: [
+    "Islamabad",
+    "Rawalpindi",
+    "Lahore",
+    "Karachi",
+    "Peshawar",
+    "Quetta",
+    "Multan",
+    "Faisalabad",
+    "Gujranwala",
+    "Sialkot",
+    "Bahawalpur",
+    "Sargodha",
+    "Hyderabad",
+    "Abbottabad",
+    "Mardan",
+    "Gujrat",
+    "Sahiwal",
+    "Sukkur",
+    "Larkana",
+    "Sheikhupura",
+    "Jhelum",
+    "Wah Cantt",
+    "Taxila",
+    "Murree",
+    "Mingora",
+    "Nawabshah",
+    "Okara",
+    "Kasur",
+    "Dera Ghazi Khan",
+    "Rahim Yar Khan",
+    "Chiniot",
+    "Attock",
+    "Mansehra",
+    "Swabi",
+    "Nowshera",
+    "Kohat",
+    "Bannu",
+    "Dera Ismail Khan",
+    "Gwadar",
+    "Turbat",
+    "Khuzdar",
+  ],
+
+  India: [
+    "New Delhi",
+    "Mumbai",
+    "Bengaluru",
+    "Hyderabad",
+    "Ahmedabad",
+    "Chennai",
+    "Kolkata",
+    "Pune",
+    "Jaipur",
+    "Lucknow",
+    "Kanpur",
+    "Nagpur",
+    "Indore",
+    "Thane",
+    "Bhopal",
+    "Visakhapatnam",
+    "Patna",
+    "Vadodara",
+    "Ghaziabad",
+    "Ludhiana",
+    "Agra",
+    "Nashik",
+    "Faridabad",
+    "Meerut",
+    "Rajkot",
+    "Varanasi",
+    "Srinagar",
+    "Amritsar",
+    "Chandigarh",
+  ],
+
+  "United States": [
+    "New York",
+    "Los Angeles",
+    "Chicago",
+    "Houston",
+    "Phoenix",
+    "Philadelphia",
+    "San Antonio",
+    "San Diego",
+    "Dallas",
+    "San Jose",
+    "Austin",
+    "Jacksonville",
+    "Fort Worth",
+    "Columbus",
+    "Indianapolis",
+    "Charlotte",
+    "Seattle",
+    "Denver",
+    "Washington",
+    "Boston",
+    "Nashville",
+    "Detroit",
+    "Portland",
+    "Las Vegas",
+    "Miami",
+    "Atlanta",
+    "Orlando",
+    "San Francisco",
+  ],
+
+  Canada: [
+    "Toronto",
+    "Montreal",
+    "Vancouver",
+    "Calgary",
+    "Edmonton",
+    "Ottawa",
+    "Winnipeg",
+    "Quebec City",
+    "Hamilton",
+    "Kitchener",
+    "London",
+    "Victoria",
+    "Halifax",
+    "Oshawa",
+    "Windsor",
+  ],
+
+  "United Kingdom": [
+    "London",
+    "Birmingham",
+    "Manchester",
+    "Glasgow",
+    "Liverpool",
+    "Leeds",
+    "Sheffield",
+    "Edinburgh",
+    "Bristol",
+    "Cardiff",
+    "Leicester",
+    "Coventry",
+    "Nottingham",
+    "Newcastle upon Tyne",
+    "Belfast",
+  ],
+
+  Australia: [
+    "Sydney",
+    "Melbourne",
+    "Brisbane",
+    "Perth",
+    "Adelaide",
+    "Gold Coast",
+    "Canberra",
+    "Newcastle",
+    "Wollongong",
+    "Geelong",
+    "Hobart",
+    "Townsville",
+    "Cairns",
+    "Darwin",
+  ],
+
+  Germany: [
+    "Berlin",
+    "Hamburg",
+    "Munich",
+    "Cologne",
+    "Frankfurt",
+    "Stuttgart",
+    "Dusseldorf",
+    "Leipzig",
+    "Dortmund",
+    "Essen",
+    "Bremen",
+    "Dresden",
+    "Hanover",
+    "Nuremberg",
+    "Bonn",
+  ],
+
+  France: [
+    "Paris",
+    "Marseille",
+    "Lyon",
+    "Toulouse",
+    "Nice",
+    "Nantes",
+    "Montpellier",
+    "Strasbourg",
+    "Bordeaux",
+    "Lille",
+    "Rennes",
+    "Reims",
+    "Le Havre",
+    "Saint-Etienne",
+    "Toulon",
+  ],
+
+  China: [
+    "Beijing",
+    "Shanghai",
+    "Guangzhou",
+    "Shenzhen",
+    "Chengdu",
+    "Chongqing",
+    "Tianjin",
+    "Wuhan",
+    "Nanjing",
+    "Xi'an",
+    "Hangzhou",
+    "Suzhou",
+    "Qingdao",
+    "Dalian",
+    "Xiamen",
+  ],
+
+  Japan: [
+    "Tokyo",
+    "Yokohama",
+    "Osaka",
+    "Nagoya",
+    "Sapporo",
+    "Fukuoka",
+    "Kobe",
+    "Kyoto",
+    "Kawasaki",
+    "Saitama",
+    "Hiroshima",
+    "Sendai",
+    "Chiba",
+    "Naha",
+  ],
+
+  "United Arab Emirates": [
+    "Dubai",
+    "Abu Dhabi",
+    "Sharjah",
+    "Ajman",
+    "Al Ain",
+    "Ras Al Khaimah",
+    "Fujairah",
+    "Umm Al Quwain",
+  ],
+
+  "Saudi Arabia": [
+    "Riyadh",
+    "Jeddah",
+    "Mecca",
+    "Medina",
+    "Dammam",
+    "Khobar",
+    "Taif",
+    "Tabuk",
+    "Abha",
+    "Jubail",
+  ],
+
+  "Turkey": [
+    "Istanbul",
+    "Ankara",
+    "Izmir",
+    "Bursa",
+    "Adana",
+    "Gaziantep",
+    "Konya",
+    "Antalya",
+    "Kayseri",
+    "Mersin",
+    "Eskisehir",
+    "Diyarbakir",
+  ],
+
+  "Bangladesh": [
+    "Dhaka",
+    "Chittagong",
+    "Khulna",
+    "Rajshahi",
+    "Sylhet",
+    "Rangpur",
+    "Comilla",
+    "Mymensingh",
+    "Barisal",
+  ],
+
+  "Malaysia": [
+    "Kuala Lumpur",
+    "George Town",
+    "Johor Bahru",
+    "Ipoh",
+    "Shah Alam",
+    "Malacca City",
+    "Kota Kinabalu",
+    "Kuching",
+    "Petaling Jaya",
+    "Seremban",
+  ],
+
+  "Singapore": [
+    "Singapore",
+  ],
+
+  "Indonesia": [
+    "Jakarta",
+    "Surabaya",
+    "Bandung",
+    "Medan",
+    "Semarang",
+    "Makassar",
+    "Palembang",
+    "Depok",
+    "Tangerang",
+    "Bekasi",
+    "Denpasar",
+  ],
+
+  "South Korea": [
+    "Seoul",
+    "Busan",
+    "Incheon",
+    "Daegu",
+    "Daejeon",
+    "Gwangju",
+    "Suwon",
+    "Ulsan",
+    "Jeonju",
+    "Jeju City",
+  ],
+
+  "Italy": [
+    "Rome",
+    "Milan",
+    "Naples",
+    "Turin",
+    "Palermo",
+    "Genoa",
+    "Bologna",
+    "Florence",
+    "Bari",
+    "Venice",
+    "Verona",
+  ],
+
+  "Spain": [
+    "Madrid",
+    "Barcelona",
+    "Valencia",
+    "Seville",
+    "Zaragoza",
+    "Malaga",
+    "Murcia",
+    "Palma",
+    "Bilbao",
+    "Alicante",
+  ],
+
+  "Brazil": [
+    "Sao Paulo",
+    "Rio de Janeiro",
+    "Brasilia",
+    "Salvador",
+    "Fortaleza",
+    "Belo Horizonte",
+    "Manaus",
+    "Curitiba",
+    "Recife",
+    "Porto Alegre",
+  ],
+
+  "Mexico": [
+    "Mexico City",
+    "Guadalajara",
+    "Monterrey",
+    "Puebla",
+    "Tijuana",
+    "Leon",
+    "Juarez",
+    "Merida",
+    "Cancun",
+    "Queretaro",
+  ],
+
+  "Russia": [
+    "Moscow",
+    "Saint Petersburg",
+    "Novosibirsk",
+    "Yekaterinburg",
+    "Kazan",
+    "Nizhny Novgorod",
+    "Chelyabinsk",
+    "Samara",
+    "Omsk",
+    "Rostov-on-Don",
+  ],
+
+  "Netherlands": [
+    "Amsterdam",
+    "Rotterdam",
+    "The Hague",
+    "Utrecht",
+    "Eindhoven",
+    "Groningen",
+    "Tilburg",
+    "Almere",
+    "Breda",
+  ],
+
+  "Switzerland": [
+    "Zurich",
+    "Geneva",
+    "Basel",
+    "Lausanne",
+    "Bern",
+    "Winterthur",
+    "Lucerne",
+    "Lugano",
+  ],
+
+  "Qatar": [
+    "Doha",
+    "Al Rayyan",
+    "Al Wakrah",
+    "Umm Salal",
+    "Al Khor",
+  ],
+
+  "Kuwait": [
+    "Kuwait City",
+    "Hawally",
+    "Salmiya",
+    "Farwaniya",
+    "Jahra",
+  ],
+
+  "Oman": [
+    "Muscat",
+    "Salalah",
+    "Sohar",
+    "Nizwa",
+    "Sur",
+    "Rustaq",
+  ],
+
+  "Egypt": [
+    "Cairo",
+    "Alexandria",
+    "Giza",
+    "Shubra El Kheima",
+    "Port Said",
+    "Suez",
+    "Luxor",
+    "Aswan",
+  ],
+
+  "Nigeria": [
+    "Lagos",
+    "Abuja",
+    "Kano",
+    "Ibadan",
+    "Benin City",
+    "Port Harcourt",
+    "Kaduna",
+    "Enugu",
+  ],
+
+  "Kenya": [
+    "Nairobi",
+    "Mombasa",
+    "Kisumu",
+    "Nakuru",
+    "Eldoret",
+    "Malindi",
+  ],
+
+  "South Africa": [
+    "Johannesburg",
+    "Cape Town",
+    "Durban",
+    "Pretoria",
+    "Port Elizabeth",
+    "Bloemfontein",
+    "East London",
+  ],
+
+  "Ireland": [
+    "Dublin",
+    "Cork",
+    "Limerick",
+    "Galway",
+    "Waterford",
+    "Drogheda",
+  ],
+
+  "Portugal": [
+    "Lisbon",
+    "Porto",
+    "Amadora",
+    "Braga",
+    "Coimbra",
+    "Funchal",
+  ],
+
+  "Greece": [
+    "Athens",
+    "Thessaloniki",
+    "Patras",
+    "Heraklion",
+    "Larissa",
+    "Volos",
+  ],
+
+  "Norway": [
+    "Oslo",
+    "Bergen",
+    "Trondheim",
+    "Stavanger",
+    "Drammen",
+    "Tromso",
+  ],
+
+  "Sweden": [
+    "Stockholm",
+    "Gothenburg",
+    "Malmo",
+    "Uppsala",
+    "Vasteras",
+    "Orebro",
+  ],
+
+  "Denmark": [
+    "Copenhagen",
+    "Aarhus",
+    "Odense",
+    "Aalborg",
+    "Esbjerg",
+  ],
+
+  "Finland": [
+    "Helsinki",
+    "Espoo",
+    "Tampere",
+    "Vantaa",
+    "Oulu",
+    "Turku",
+  ],
+
+  "Austria": [
+    "Vienna",
+    "Graz",
+    "Linz",
+    "Salzburg",
+    "Innsbruck",
+    "Klagenfurt",
+  ],
+
+  "Belgium": [
+    "Brussels",
+    "Antwerp",
+    "Ghent",
+    "Charleroi",
+    "Liege",
+    "Bruges",
+  ],
+
+  "Poland": [
+    "Warsaw",
+    "Krakow",
+    "Lodz",
+    "Wroclaw",
+    "Poznan",
+    "Gdansk",
+    "Szczecin",
+    "Katowice",
+  ],
+
+  "Romania": [
+    "Bucharest",
+    "Cluj-Napoca",
+    "Timisoara",
+    "Iasi",
+    "Constanta",
+    "Craiova",
+  ],
+
+  "Ukraine": [
+    "Kyiv",
+    "Kharkiv",
+    "Odesa",
+    "Dnipro",
+    "Lviv",
+    "Zaporizhzhia",
+    "Vinnytsia",
+  ],
+
+  "Argentina": [
+    "Buenos Aires",
+    "Cordoba",
+    "Rosario",
+    "Mendoza",
+    "La Plata",
+    "Mar del Plata",
+  ],
+
+  "Chile": [
+    "Santiago",
+    "Valparaiso",
+    "Concepcion",
+    "La Serena",
+    "Antofagasta",
+    "Temuco",
+  ],
+
+  "Colombia": [
+    "Bogota",
+    "Medellin",
+    "Cali",
+    "Barranquilla",
+    "Cartagena",
+    "Bucaramanga",
+  ],
+
+  "Peru": [
+    "Lima",
+    "Arequipa",
+    "Trujillo",
+    "Cusco",
+    "Chiclayo",
+    "Piura",
+  ],
+};
+
+/* =========================================================
+   HIRE COMPONENT
+========================================================= */
 
 function Hire() {
   useEffect(() => {
@@ -10,6 +1013,8 @@ function Hire() {
   }, []);
 
   const [formData, setFormData] = useState({
+    country: "Pakistan",
+    currency: "PKR - Pakistani Rupee",
     title: "",
     type: "",
     category: "",
@@ -32,13 +1037,152 @@ function Hire() {
     notificationPeriod: "",
   });
 
+  const [cities, setCities] = useState(
+    FALLBACK_CITIES.Pakistan || []
+  );
+
+  const [cityLoading, setCityLoading] = useState(false);
+
+  const [cityError, setCityError] = useState("");
+
   const [files, setFiles] = useState([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitMessage, setSubmitMessage] = useState("");
-  const [submitError, setSubmitError] = useState("");
+
+  const [isSubmitting, setIsSubmitting] =
+    useState(false);
+
+  const [submitMessage, setSubmitMessage] =
+    useState("");
+
+  const [submitError, setSubmitError] =
+    useState("");
+
+  /* =========================================================
+     LOAD CITIES WHEN COUNTRY CHANGES
+  ========================================================= */
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadCities = async () => {
+      const selectedCountry = formData.country;
+
+      if (!selectedCountry) {
+        setCities([]);
+        setCityError("");
+        return;
+      }
+
+      setCityLoading(true);
+      setCityError("");
+
+      // Clear previously selected city
+      setFormData((prev) => ({
+        ...prev,
+        location: "",
+      }));
+
+      try {
+        const response = await fetch(
+          "https://countriesnow.space/api/v0.1/countries/cities",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              country: selectedCountry,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            "Unable to load cities."
+          );
+        }
+
+        const result = await response.json();
+
+        const apiCities =
+          Array.isArray(result?.data)
+            ? result.data
+            : [];
+
+        const fallbackCities =
+          FALLBACK_CITIES[selectedCountry] || [];
+
+        const mergedCities = Array.from(
+          new Set([
+            ...apiCities,
+            ...fallbackCities,
+          ])
+        )
+          .filter(Boolean)
+          .sort((a, b) =>
+            a.localeCompare(b)
+          );
+
+        if (isMounted) {
+          setCities(mergedCities);
+
+          if (mergedCities.length === 0) {
+            setCityError(
+              "No city list was available for this country. You can enter the city manually."
+            );
+          }
+        }
+      } catch (error) {
+        console.error(
+          "City loading error:",
+          error
+        );
+
+        if (isMounted) {
+          const fallbackCities =
+            FALLBACK_CITIES[selectedCountry] || [];
+
+          setCities(fallbackCities);
+
+          if (fallbackCities.length === 0) {
+            setCityError(
+              "City list could not be loaded. You can enter the city manually."
+            );
+          } else {
+            setCityError(
+              "Live city list could not be loaded. Showing available cities."
+            );
+          }
+        }
+      } finally {
+        if (isMounted) {
+          setCityLoading(false);
+        }
+      }
+    };
+
+    loadCities();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [formData.country]);
+
+  /* =========================================================
+     HANDLE CHANGE
+  ========================================================= */
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    if (name === "country") {
+      setFormData((prev) => ({
+        ...prev,
+        country: value,
+        location: "",
+      }));
+
+      return;
+    }
 
     setFormData((prev) => ({
       ...prev,
@@ -46,12 +1190,21 @@ function Hire() {
     }));
   };
 
+  /* =========================================================
+     FILE CHANGE
+  ========================================================= */
+
   const handleFileChange = (e) => {
-    const selectedFiles = Array.from(e.target.files);
+    const selectedFiles = Array.from(
+      e.target.files || []
+    );
+
     setFiles(selectedFiles);
   };
 
-  /* ================= SUBMIT FORM ================= */
+  /* =========================================================
+     SUBMIT FORM
+  ========================================================= */
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,62 +1214,181 @@ function Hire() {
     setSubmitError("");
 
     try {
-      const accessToken = localStorage.getItem("hireDeliverAccessToken");
+      const accessToken = localStorage.getItem(
+        "hireDeliverAccessToken"
+      );
 
       if (!accessToken) {
-        setSubmitError("Your login session has expired. Please login again.");
+        setSubmitError(
+          "Your login session has expired. Please login again."
+        );
+
         setIsSubmitting(false);
         return;
       }
 
       const data = new FormData();
 
-      data.append("title", formData.title);
-      data.append("type", formData.type);
-      data.append("category", formData.category);
-      data.append("description", formData.description);
-      data.append("scope", formData.scope);
-      data.append("deliverables", formData.deliverables);
-      data.append("budget", formData.budget);
-      data.append("processing", formData.processing);
-      data.append("standardTimeline", formData.standardTimeline);
-      data.append("urgentTimeline", formData.urgentTimeline);
-      data.append("humanResources", formData.humanResources);
-      data.append("roles", formData.roles);
-      data.append("skills", formData.skills);
-      data.append("tools", formData.tools);
-      data.append("physicalResources", formData.physicalResources);
-      data.append("additionalResources", formData.additionalResources);
-      data.append("location", formData.location);
-      data.append("fullLocation", formData.fullLocation);
-      data.append("communicationMethod", formData.communicationMethod);
-      data.append("notificationPeriod", formData.notificationPeriod);
+      data.append(
+        "country",
+        formData.country
+      );
+
+      data.append(
+        "currency",
+        formData.currency
+      );
+
+      data.append(
+        "title",
+        formData.title
+      );
+
+      data.append(
+        "type",
+        formData.type
+      );
+
+      data.append(
+        "category",
+        formData.category
+      );
+
+      data.append(
+        "description",
+        formData.description
+      );
+
+      data.append(
+        "scope",
+        formData.scope
+      );
+
+      data.append(
+        "deliverables",
+        formData.deliverables
+      );
+
+      data.append(
+        "budget",
+        formData.budget
+      );
+
+      data.append(
+        "processing",
+        formData.processing
+      );
+
+      data.append(
+        "standardTimeline",
+        formData.standardTimeline
+      );
+
+      data.append(
+        "urgentTimeline",
+        formData.urgentTimeline
+      );
+
+      data.append(
+        "humanResources",
+        formData.humanResources
+      );
+
+      data.append(
+        "roles",
+        formData.roles
+      );
+
+      data.append(
+        "skills",
+        formData.skills
+      );
+
+      data.append(
+        "tools",
+        formData.tools
+      );
+
+      data.append(
+        "physicalResources",
+        formData.physicalResources
+      );
+
+      data.append(
+        "additionalResources",
+        formData.additionalResources
+      );
+
+      data.append(
+        "location",
+        formData.location
+      );
+
+      data.append(
+        "fullLocation",
+        formData.fullLocation
+      );
+
+      data.append(
+        "communicationMethod",
+        formData.communicationMethod
+      );
+
+      data.append(
+        "notificationPeriod",
+        formData.notificationPeriod
+      );
 
       files.forEach((file) => {
-        data.append("uploadedFiles", file);
+        data.append(
+          "uploadedFiles",
+          file
+        );
       });
 
-      const response = await fetch("http://127.0.0.1:5000/api/hire/submit", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: data,
-      });
+      const response = await fetch(
+        "http://127.0.0.1:5000/api/hire/submit",
+        {
+          method: "POST",
 
-      const result = await response.json();
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+
+          body: data,
+        }
+      );
+
+      const result =
+        await response.json();
 
       if (response.status === 401) {
-        localStorage.removeItem("hireDeliverAccessToken");
-        localStorage.removeItem("hireDeliverLoggedIn");
-        localStorage.removeItem("hireDeliverUser");
-        setSubmitError("Your login session has expired. Please login again.");
+        localStorage.removeItem(
+          "hireDeliverAccessToken"
+        );
+
+        localStorage.removeItem(
+          "hireDeliverLoggedIn"
+        );
+
+        localStorage.removeItem(
+          "hireDeliverUser"
+        );
+
+        setSubmitError(
+          "Your login session has expired. Please login again."
+        );
+
         setIsSubmitting(false);
+
         return;
       }
 
       if (!response.ok) {
-        throw new Error(result.message || "Failed to submit requirement.");
+        throw new Error(
+          result.message ||
+            "Failed to submit requirement."
+        );
       }
 
       setSubmitMessage(
@@ -124,6 +1396,9 @@ function Hire() {
       );
 
       setFormData({
+        country: "Pakistan",
+        currency:
+          "PKR - Pakistani Rupee",
         title: "",
         type: "",
         category: "",
@@ -146,52 +1421,84 @@ function Hire() {
         notificationPeriod: "",
       });
 
+      setCities(
+        FALLBACK_CITIES.Pakistan || []
+      );
+
+      setCityError("");
+
       setFiles([]);
 
-      const fileInput = document.getElementById("hireFiles");
+      const fileInput =
+        document.getElementById(
+          "hireFiles"
+        );
+
       if (fileInput) {
         fileInput.value = "";
       }
 
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      console.log("Hire submission:", result);
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
 
+      console.log(
+        "Hire submission:",
+        result
+      );
     } catch (error) {
-      console.error("Hire submission error:", error);
+      console.error(
+        "Hire submission error:",
+        error
+      );
+
       setSubmitError(
         error.message ||
-        "Something went wrong while submitting the requirement."
+          "Something went wrong while submitting the requirement."
       );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const filledFields = Object.values(formData).filter(
-    (value) => value.trim() !== ""
-  ).length;
+  /* =========================================================
+     FORM COMPLETION
+  ========================================================= */
 
-  const totalFields = Object.keys(formData).length;
+  const filledFields =
+    Object.values(formData).filter(
+      (value) =>
+        typeof value === "string" &&
+        value.trim() !== ""
+    ).length;
 
-  const completion = Math.round((filledFields / totalFields) * 100);
+  const totalFields =
+    Object.keys(formData).length;
+
+  const completion =
+    totalFields > 0
+      ? Math.round(
+          (filledFields / totalFields) *
+            100
+        )
+      : 0;
 
   return (
     <div className="app">
 
-      {/* ================= NAVBAR ================= */}
-
       <Navbar />
-
-
-      {/* ================= HIRE PAGE ================= */}
 
       <main className="deliver-page">
 
-        {/* ================= HEADER ================= */}
+        {/* ===================================================
+            HEADER
+        =================================================== */}
 
         <section className="deliver-header">
 
           <div>
+
             <span className="page-badge">
               HIRE
             </span>
@@ -201,131 +1508,185 @@ function Hire() {
             </h1>
 
             <p>
-              Tell teams and service providers exactly what you need,
-              including your requirements, budget, timeline, resources,
-              location and preferred communication method.
+              Tell teams and service providers exactly what
+              you need, including your requirements, budget,
+              timeline, resources, location and preferred
+              communication method.
             </p>
+
           </div>
 
           <div className="header-status">
+
             <Link
-            to="/dashboard"
-            className="form-dashboard-btn"
+              to="/dashboard"
+              className="form-dashboard-btn"
             >
-            <span>←</span>
-            Dashboard
+              <span>←</span>
+              Dashboard
             </Link>
-            
+
             <span className="status-dot"></span>
+
             New Requirement
+
           </div>
 
         </section>
 
-
-        {/* ================= WORKSPACE ================= */}
+        {/* ===================================================
+            WORKSPACE
+        =================================================== */}
 
         <section className="deliver-workspace">
 
-
-          {/* ================= LEFT GUIDE ================= */}
+          {/* =================================================
+              LEFT GUIDE
+          ================================================= */}
 
           <aside className="deliver-guide">
 
             <div className="side-heading">
+
               <span>01</span>
-              <h3>Requirement Guide</h3>
+
+              <h3>
+                Requirement Guide
+              </h3>
+
             </div>
 
             <p className="side-intro">
-              Provide complete information so suitable teams and
-              service providers can understand exactly what you need.
+              Provide complete information so suitable teams,
+              professionals and service providers can understand
+              exactly what you need.
             </p>
-
 
             <div className="guide-step active">
               <span>01</span>
+
               <div>
-                <strong>Basic Information</strong>
-                <small>Title, type and category</small>
+                <strong>
+                  Basic Information
+                </strong>
+
+                <small>
+                  Country, title, type and category
+                </small>
               </div>
             </div>
-
 
             <div className="guide-step">
               <span>02</span>
+
               <div>
-                <strong>Requirement Details</strong>
-                <small>Description, scope and tasks</small>
+                <strong>
+                  Requirement Details
+                </strong>
+
+                <small>
+                  Description, scope and expected work
+                </small>
               </div>
             </div>
-
 
             <div className="guide-step">
               <span>03</span>
+
               <div>
-                <strong>Budget & Processing</strong>
-                <small>Budget and processing priority</small>
+                <strong>
+                  Budget & Processing
+                </strong>
+
+                <small>
+                  Currency, budget and processing preference
+                </small>
               </div>
             </div>
-
 
             <div className="guide-step">
               <span>04</span>
+
               <div>
-                <strong>Timeline</strong>
-                <small>Required and urgent timeline</small>
+                <strong>
+                  Timeline
+                </strong>
+
+                <small>
+                  Required and preferred completion timeline
+                </small>
               </div>
             </div>
-
 
             <div className="guide-step">
               <span>05</span>
+
               <div>
-                <strong>Human Resources</strong>
-                <small>Roles, quantity and skills</small>
+                <strong>
+                  Human Resources
+                </strong>
+
+                <small>
+                  Required people, roles and expertise
+                </small>
               </div>
             </div>
-
 
             <div className="guide-step">
               <span>06</span>
+
               <div>
-                <strong>Tools & Resources</strong>
-                <small>Software, equipment and resources</small>
+                <strong>
+                  Tools & Resources
+                </strong>
+
+                <small>
+                  Software, equipment and supporting resources
+                </small>
               </div>
             </div>
-
 
             <div className="guide-step">
               <span>07</span>
+
               <div>
-                <strong>Location & Communication</strong>
-                <small>Location and preferred contact</small>
+                <strong>
+                  Location & Communication
+                </strong>
+
+                <small>
+                  City, address and preferred contact method
+                </small>
               </div>
             </div>
 
-
             <div className="guide-tip">
-              <strong>TIP</strong>
+
+              <strong>
+                TIP
+              </strong>
 
               <p>
-                The more clearly you describe your requirement,
-                the easier it becomes for suitable providers to
-                understand and submit relevant proposals.
+                You can use this form for any type of requirement,
+                including products, services, projects, consulting,
+                research, construction, marketing, manufacturing,
+                events, technical work or other professional needs.
               </p>
+
             </div>
 
           </aside>
 
-
-          {/* ================= CENTER FORM ================= */}
+          {/* =================================================
+              CENTER FORM
+          ================================================= */}
 
           <div className="deliver-form-card">
 
             <div className="form-card-header">
 
               <div>
+
                 <span>
                   HIRE REQUIREMENT
                 </span>
@@ -333,6 +1694,7 @@ function Hire() {
                 <h2>
                   Requirement Information
                 </h2>
+
               </div>
 
               <small>
@@ -358,14 +1720,54 @@ function Hire() {
               onSubmit={handleSubmit}
             >
 
-
-              {/* ================= 01 BASIC ================= */}
+              {/* =============================================
+                  01 BASIC INFORMATION
+              ============================================= */}
 
               <div className="form-section-title">
                 <span>01</span>
                 Basic Information
               </div>
 
+              {/* COUNTRY */}
+
+              <div className="form-group">
+
+                <label>
+                  Country *
+                </label>
+
+                <input
+                  list="hire-country-list"
+                  type="text"
+                  name="country"
+                  value={formData.country}
+                  onChange={handleChange}
+                  placeholder="Search or select your country"
+                  autoComplete="country-name"
+                  required
+                />
+
+                <datalist id="hire-country-list">
+                  {COUNTRIES.map(
+                    (country) => (
+                      <option
+                        value={country}
+                        key={country}
+                      />
+                    )
+                  )}
+                </datalist>
+
+                <small>
+                  Select the country where the requirement
+                  is located or where the work/service is
+                  primarily needed.
+                </small>
+
+              </div>
+
+              {/* TITLE */}
 
               <div className="form-group">
 
@@ -378,15 +1780,18 @@ function Hire() {
                   name="title"
                   value={formData.title}
                   onChange={handleChange}
-                  placeholder="e.g. E-commerce Website Development"
+                  placeholder="e.g. Website Development, Office Renovation, Marketing Campaign, Research Support"
+                  required
                 />
 
                 <small>
-                  Give your requirement a short and clear title.
+                  Give your requirement a short, clear and
+                  meaningful title that explains what you need.
                 </small>
 
               </div>
 
+              {/* TYPE + CATEGORY */}
 
               <div className="form-row">
 
@@ -400,6 +1805,7 @@ function Hire() {
                     name="type"
                     value={formData.type}
                     onChange={handleChange}
+                    required
                   >
 
                     <option value="">
@@ -432,8 +1838,13 @@ function Hire() {
 
                   </select>
 
-                </div>
+                  <small>
+                    Select the general nature of the requirement,
+                    such as a product, service, task, project or
+                    professional resource.
+                  </small>
 
+                </div>
 
                 <div className="form-group">
 
@@ -445,6 +1856,7 @@ function Hire() {
                     name="category"
                     value={formData.category}
                     onChange={handleChange}
+                    required
                   >
 
                     <option value="">
@@ -483,24 +1895,50 @@ function Hire() {
                       Technical Service
                     </option>
 
+                    <option value="Construction">
+                      Construction
+                    </option>
+
+                    <option value="Manufacturing">
+                      Manufacturing
+                    </option>
+
+                    <option value="Education & Training">
+                      Education & Training
+                    </option>
+
+                    <option value="Events & Management">
+                      Events & Management
+                    </option>
+
+                    <option value="Professional Services">
+                      Professional Services
+                    </option>
+
                     <option value="Other">
                       Other
                     </option>
 
                   </select>
 
+                  <small>
+                    Select the category that best represents
+                    the work, product, service or expertise
+                    you need.
+                  </small>
+
                 </div>
 
               </div>
 
-
-              {/* ================= 02 DETAILS ================= */}
+              {/* =============================================
+                  02 REQUIREMENT DETAILS
+              ============================================= */}
 
               <div className="form-section-title">
                 <span>02</span>
                 Requirement Details
               </div>
-
 
               <div className="form-group">
 
@@ -513,16 +1951,27 @@ function Hire() {
                   value={formData.description}
                   onChange={handleChange}
                   rows="6"
-                  placeholder="Describe exactly what you need, your expectations, required features, quantity or other important details..."
+                  placeholder={`Describe what you need in your own words.
+
+For example:
+• What product, service or work do you need?
+• What problem should it solve?
+• What features, quality or results do you expect?
+• What quantity or scale is required?
+
+You can describe software, construction work, research, marketing,
+consulting, manufacturing, design, training, events or any other requirement.`}
+                  required
                 />
 
                 <small>
-                  Clearly explain the product, service, task or project
-                  you want a provider to deliver.
+                  Explain your actual requirement clearly. Include
+                  important expectations, quantity, quality standards,
+                  features, outcomes or any information that will help
+                  providers understand your need.
                 </small>
 
               </div>
-
 
               <div className="form-group">
 
@@ -535,15 +1984,22 @@ function Hire() {
                   value={formData.scope}
                   onChange={handleChange}
                   rows="5"
-                  placeholder="Define what should be included in the requirement and what should be covered..."
+                  placeholder={`Explain the boundaries and coverage of the work.
+
+For example:
+• What should be included?
+• Which locations, departments, products or services are covered?
+• What is outside the expected scope?
+• Are there any limitations or specific conditions?`}
                 />
 
                 <small>
-                  Mention the boundaries, coverage and expected scope.
+                  Define what the provider is expected to cover
+                  and mention any boundaries, limitations or
+                  important conditions.
                 </small>
 
               </div>
-
 
               <div className="form-group">
 
@@ -556,51 +2012,94 @@ function Hire() {
                   value={formData.deliverables}
                   onChange={handleChange}
                   rows="5"
-                  placeholder={`Example:
-1. UI/UX Design
-2. Frontend Development
-3. Backend Development
-4. Database Integration
-5. Testing
-6. Deployment`}
+                  placeholder={`List the main tasks, outputs or results you expect.
+
+Example:
+1. Initial planning or requirement analysis
+2. Main work / implementation
+3. Testing, review or quality checking
+4. Final product, service or report
+5. Handover, documentation or support
+
+Use the list according to your own requirement.`}
                 />
 
                 <small>
-                  Specify the main tasks, outputs or deliverables you expect.
+                  Mention the main activities and final outputs
+                  you expect from the selected provider.
                 </small>
 
               </div>
 
-
-              {/* ================= 03 BUDGET ================= */}
+              {/* =============================================
+                  03 BUDGET & PROCESSING
+              ============================================= */}
 
               <div className="form-section-title">
                 <span>03</span>
                 Budget & Processing
               </div>
 
+              <div className="form-row">
 
-              <div className="form-group">
+                <div className="form-group">
 
-                <label>
-                  Total Budget *
-                </label>
+                  <label>
+                    Currency *
+                  </label>
 
-                <input
-                  type="text"
-                  name="budget"
-                  value={formData.budget}
-                  onChange={handleChange}
-                  placeholder="e.g. PKR 100,000"
-                />
+                  <input
+                    list="hire-currency-list"
+                    type="text"
+                    name="currency"
+                    value={formData.currency}
+                    onChange={handleChange}
+                    placeholder="Search or select currency"
+                    autoComplete="off"
+                    required
+                  />
 
-                <small>
-                  Mention the maximum or expected budget available
-                  for the complete requirement.
-                </small>
+                  <datalist id="hire-currency-list">
+                    {CURRENCIES.map(
+                      (currency) => (
+                        <option
+                          value={currency}
+                          key={currency}
+                        />
+                      )
+                    )}
+                  </datalist>
+
+                  <small>
+                    Select the currency in which the total
+                    budget will be provided.
+                  </small>
+
+                </div>
+
+                <div className="form-group">
+
+                  <label>
+                    Total Budget *
+                  </label>
+
+                  <input
+                    type="text"
+                    name="budget"
+                    value={formData.budget}
+                    onChange={handleChange}
+                    placeholder="e.g. 100,000 or budget range"
+                    required
+                  />
+
+                  <small>
+                    Mention the maximum, expected or estimated
+                    amount available for the complete requirement.
+                  </small>
+
+                </div>
 
               </div>
-
 
               <div className="form-group">
 
@@ -612,6 +2111,7 @@ function Hire() {
                   name="processing"
                   value={formData.processing}
                   onChange={handleChange}
+                  required
                 >
 
                   <option value="">
@@ -629,21 +2129,21 @@ function Hire() {
                 </select>
 
                 <small>
-                  Urgent processing may require additional cost because
-                  the provider may need to allocate extra resources or
-                  complete the work in a shorter time.
+                  Choose normal processing if the work can follow
+                  the regular timeline, or urgent processing if you
+                  need the provider to prioritize the requirement.
                 </small>
 
               </div>
 
-
-              {/* ================= 04 TIMELINE ================= */}
+              {/* =============================================
+                  04 TIMELINE
+              ============================================= */}
 
               <div className="form-section-title">
                 <span>04</span>
                 Timeline
               </div>
-
 
               <div className="form-row">
 
@@ -658,15 +2158,16 @@ function Hire() {
                     name="standardTimeline"
                     value={formData.standardTimeline}
                     onChange={handleChange}
-                    placeholder="e.g. 30 days"
+                    placeholder="e.g. 30 days, 8 weeks, 3 months"
+                    required
                   />
 
                   <small>
-                    Mention when you normally need the requirement completed.
+                    Mention the normal or required time within
+                    which you expect the work to be completed.
                   </small>
 
                 </div>
-
 
                 <div className="form-group">
 
@@ -679,25 +2180,27 @@ function Hire() {
                     name="urgentTimeline"
                     value={formData.urgentTimeline}
                     onChange={handleChange}
-                    placeholder="e.g. 15 days"
+                    placeholder="e.g. 15 days, 4 weeks or Not Applicable"
                   />
 
                   <small>
-                    Mention the fastest preferred completion time if needed.
+                    If you need the work completed faster than
+                    the normal timeline, mention your preferred
+                    urgent timeline.
                   </small>
 
                 </div>
 
               </div>
 
-
-              {/* ================= 05 HUMAN RESOURCES ================= */}
+              {/* =============================================
+                  05 HUMAN RESOURCES
+              ============================================= */}
 
               <div className="form-section-title">
                 <span>05</span>
                 Human Resources
               </div>
-
 
               <div className="form-group">
 
@@ -710,20 +2213,23 @@ function Hire() {
                   value={formData.humanResources}
                   onChange={handleChange}
                   rows="4"
-                  placeholder={`Example:
-1. 1 Project Manager
-2. 2 Frontend Developers
-3. 1 Backend Developer
-4. 1 UI/UX Designer`}
+                  placeholder={`Mention the number and type of people you need.
+
+Example:
+• 1 Project Manager
+• 2 Technical Specialists
+• 1 Designer
+• 1 Researcher
+
+You can use any roles relevant to your requirement.`}
                 />
 
                 <small>
-                  Mention the people, quantity and type of resources
-                  required for your project or task.
+                  Mention how many people or professionals may
+                  be required and what type of work they should handle.
                 </small>
 
               </div>
-
 
               <div className="form-group">
 
@@ -736,15 +2242,20 @@ function Hire() {
                   value={formData.roles}
                   onChange={handleChange}
                   rows="4"
-                  placeholder="e.g. Project Manager, Frontend Developer, Backend Developer, UI/UX Designer..."
+                  placeholder={`List the professional roles you expect.
+
+Examples:
+Project Manager, Engineer, Consultant, Designer,
+Researcher, Marketing Specialist, Accountant, Developer,
+Technician, Trainer or any other relevant role.`}
                 />
 
                 <small>
-                  Mention the specific roles you expect from the provider.
+                  Mention the roles or professional positions
+                  required for your specific work.
                 </small>
 
               </div>
-
 
               <div className="form-group">
 
@@ -757,23 +2268,30 @@ function Hire() {
                   value={formData.skills}
                   onChange={handleChange}
                   rows="4"
-                  placeholder="e.g. React.js, Python, Flask, MySQL, UI/UX, Project Management..."
+                  placeholder={`Mention the knowledge, skills or experience required.
+
+Examples:
+Technical expertise, industry knowledge, project management,
+research skills, design skills, communication skills,
+specific certifications, practical experience or other expertise.`}
                 />
 
                 <small>
-                  Mention the skills and expertise required from the team.
+                  Describe the skills, qualifications, knowledge,
+                  certifications or experience that would make a
+                  provider suitable for your requirement.
                 </small>
 
               </div>
 
-
-              {/* ================= 06 TOOLS ================= */}
+              {/* =============================================
+                  06 TOOLS & RESOURCES
+              ============================================= */}
 
               <div className="form-section-title">
                 <span>06</span>
                 Tools & Resources
               </div>
-
 
               <div className="form-group">
 
@@ -786,16 +2304,22 @@ function Hire() {
                   value={formData.tools}
                   onChange={handleChange}
                   rows="4"
-                  placeholder="e.g. Figma, React, VS Code, MySQL, Adobe Photoshop, AutoCAD..."
+                  placeholder={`Mention any specific tools, software, platforms or systems.
+
+Examples:
+Design software, accounting software, laboratory tools,
+project management platforms, engineering software,
+communication platforms, development tools or other required systems.
+
+If no specific tool is required, you can write "Not specified".`}
                 />
 
                 <small>
-                  Mention any specific software, platforms or tools
-                  that the provider should have or use.
+                  Mention tools or software that the provider
+                  must already have or use to complete the requirement.
                 </small>
 
               </div>
-
 
               <div className="form-group">
 
@@ -808,15 +2332,20 @@ function Hire() {
                   value={formData.physicalResources}
                   onChange={handleChange}
                   rows="4"
-                  placeholder="Mention any physical equipment, machinery, devices or hardware required..."
+                  placeholder={`Mention any physical equipment, facilities or materials needed.
+
+Examples:
+Machinery, laboratory equipment, cameras, vehicles,
+construction equipment, office facilities, computers,
+production equipment or other physical resources.`}
                 />
 
                 <small>
-                  Mention equipment or physical resources needed for the requirement.
+                  Mention physical equipment, facilities, machinery,
+                  devices or materials needed for the work.
                 </small>
 
               </div>
-
 
               <div className="form-group">
 
@@ -829,24 +2358,30 @@ function Hire() {
                   value={formData.additionalResources}
                   onChange={handleChange}
                   rows="4"
-                  placeholder="Mention any additional materials, information, support, resources or special requirements..."
+                  placeholder={`Mention anything else the provider may need.
+
+Examples:
+Reference material, documents, data, access permissions,
+special materials, licenses, transportation, support staff,
+brand information or other supporting resources.`}
                 />
 
                 <small>
-                  Mention anything else the service provider must arrange
-                  or have available.
+                  Add any additional information, materials,
+                  support or resources that are important for
+                  completing the requirement.
                 </small>
 
               </div>
 
-
-              {/* ================= 07 LOCATION ================= */}
+              {/* =============================================
+                  07 LOCATION & COMMUNICATION
+              ============================================= */}
 
               <div className="form-section-title">
                 <span>07</span>
                 Location & Communication
               </div>
-
 
               <div className="form-group">
 
@@ -854,92 +2389,65 @@ function Hire() {
                   Required City *
                 </label>
 
-                <select
+                <input
+                  list="hire-city-list"
+                  type="text"
                   name="location"
                   value={formData.location}
                   onChange={handleChange}
-                >
+                  placeholder={
+                    cityLoading
+                      ? "Loading cities..."
+                      : cities.length > 0
+                      ? "Search or select city"
+                      : "Enter city manually"
+                  }
+                  autoComplete="address-level2"
+                  required
+                />
 
-                  <option value="">
-                    Select city
-                  </option>
+                <datalist id="hire-city-list">
 
-                  <option value="Islamabad">
-                    Islamabad
-                  </option>
+                  {cities.map(
+                    (city) => (
+                      <option
+                        value={city}
+                        key={city}
+                      />
+                    )
+                  )}
 
-                  <option value="Rawalpindi">
-                    Rawalpindi
-                  </option>
+                </datalist>
 
-                  <option value="Lahore">
-                    Lahore
-                  </option>
+                {cityLoading && (
+                  <small>
+                    Loading cities for{" "}
+                    {formData.country}...
+                  </small>
+                )}
 
-                  <option value="Karachi">
-                    Karachi
-                  </option>
+                {!cityLoading &&
+                  cityError && (
+                    <small>
+                      {cityError}
+                    </small>
+                  )}
 
-                  <option value="Peshawar">
-                    Peshawar
-                  </option>
-
-                  <option value="Quetta">
-                    Quetta
-                  </option>
-
-                  <option value="Multan">
-                    Multan
-                  </option>
-
-                  <option value="Faisalabad">
-                    Faisalabad
-                  </option>
-
-                  <option value="Gujranwala">
-                    Gujranwala
-                  </option>
-
-                  <option value="Sialkot">
-                    Sialkot
-                  </option>
-
-                  <option value="Bahawalpur">
-                    Bahawalpur
-                  </option>
-
-                  <option value="Sargodha">
-                    Sargodha
-                  </option>
-
-                  <option value="Hyderabad">
-                    Hyderabad
-                  </option>
-
-                  <option value="Abbottabad">
-                    Abbottabad
-                  </option>
-
-                  <option value="Mardan">
-                    Mardan
-                  </option>
-
-                  <option value="Remote">
-                    Remote
-                  </option>
-
-                  <option value="Multiple Cities">
-                    Multiple Cities
-                  </option>
-
-                </select>
-
-                <small>
-                  Select where the product, service or project is required.
-                </small>
+                {!cityLoading &&
+                  !cityError &&
+                  cities.length > 0 && (
+                    <small>
+                      Cities are based on your selected country:
+                      <strong>
+                        {" "}
+                        {formData.country}
+                      </strong>
+                      . You can search the list or enter another
+                      city manually if needed.
+                    </small>
+                  )}
 
               </div>
-
 
               <div className="form-group">
 
@@ -952,15 +2460,19 @@ function Hire() {
                   value={formData.fullLocation}
                   onChange={handleChange}
                   rows="3"
-                  placeholder="Enter complete address, area, office, site or other location details..."
+                  placeholder={`Enter detailed location information if needed.
+
+Examples:
+Office address, project site, building, area,
+industrial zone, institution, venue or other relevant location details.`}
                 />
 
                 <small>
-                  Provide detailed location information if required.
+                  Provide the complete address or detailed location
+                  only when it is relevant to the requirement.
                 </small>
 
               </div>
-
 
               <div className="form-group">
 
@@ -972,6 +2484,7 @@ function Hire() {
                   name="communicationMethod"
                   value={formData.communicationMethod}
                   onChange={handleChange}
+                  required
                 >
 
                   <option value="">
@@ -1009,19 +2522,21 @@ function Hire() {
                 </select>
 
                 <small>
-                  Select your preferred method for communicating with providers.
+                  Select the communication method you prefer for
+                  discussing the requirement, receiving updates
+                  and coordinating with providers.
                 </small>
 
               </div>
 
-
-              {/* ================= 08 DOCUMENTS ================= */}
+              {/* =============================================
+                  08 DOCUMENTS
+              ============================================= */}
 
               <div className="form-section-title">
                 <span>08</span>
                 Requirement Documents
               </div>
-
 
               <div className="form-group">
 
@@ -1042,6 +2557,7 @@ function Hire() {
                     htmlFor="hireFiles"
                     className="file-upload-label"
                   >
+
                     <span className="upload-icon">
                       ↑
                     </span>
@@ -1053,49 +2569,57 @@ function Hire() {
                     <small>
                       Add PDF, DOC, DOCX, images or other relevant files
                     </small>
+
                   </label>
 
                 </div>
 
-
                 {files.length > 0 && (
                   <div className="uploaded-files-list">
 
-                    {files.map((file, index) => (
-                      <div
-                        className="uploaded-file-item"
-                        key={index}
-                      >
+                    {files.map(
+                      (file, index) => (
+                        <div
+                          className="uploaded-file-item"
+                          key={index}
+                        >
 
-                        <span>
-                          {file.name}
-                        </span>
+                          <span>
+                            {file.name}
+                          </span>
 
-                        <small>
-                          {(file.size / 1024 / 1024).toFixed(2)} MB
-                        </small>
+                          <small>
+                            {(
+                              file.size /
+                              1024 /
+                              1024
+                            ).toFixed(2)}{" "}
+                            MB
+                          </small>
 
-                      </div>
-                    ))}
+                        </div>
+                      )
+                    )}
 
                   </div>
                 )}
 
                 <small>
                   Upload specifications, reference documents,
-                  drawings, requirements or other useful files.
+                  quotations, drawings, images, reports,
+                  requirements or any other useful supporting files.
                 </small>
 
               </div>
 
-
-              {/* ================= 09 UPDATES ================= */}
+              {/* =============================================
+                  09 UPDATES
+              ============================================= */}
 
               <div className="form-section-title">
                 <span>09</span>
                 Updates & Follow-up
               </div>
-
 
               <div className="form-group">
 
@@ -1132,14 +2656,15 @@ function Hire() {
                 </select>
 
                 <small>
-                  Choose how often you would like to receive requirement
-                  or project updates.
+                  Choose how often you would like to receive
+                  requirement or project updates from the provider.
                 </small>
 
               </div>
 
-
-              {/* ================= ACTIONS ================= */}
+              {/* =================================================
+                  ACTIONS
+              ================================================= */}
 
               <div className="form-actions">
 
@@ -1150,13 +2675,14 @@ function Hire() {
                   Cancel
                 </Link>
 
-
                 <button
                   type="submit"
                   className="primary-btn"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Submitting..." : "Post Requirement →"}
+                  {isSubmitting
+                    ? "Submitting..."
+                    : "Post Requirement →"}
                 </button>
 
               </div>
@@ -1165,8 +2691,9 @@ function Hire() {
 
           </div>
 
-
-          {/* ================= RIGHT SUMMARY ================= */}
+          {/* =================================================
+              RIGHT SUMMARY
+          ================================================= */}
 
           <aside className="project-summary">
 
@@ -1174,7 +2701,9 @@ function Hire() {
 
               <div>
 
-                <span>02</span>
+                <span>
+                  02
+                </span>
 
                 <h3>
                   Requirement Summary
@@ -1187,9 +2716,6 @@ function Hire() {
               </span>
 
             </div>
-
-
-            {/* COMPLETION */}
 
             <div className="completion-card">
 
@@ -1205,7 +2731,6 @@ function Hire() {
 
               </div>
 
-
               <div className="progress-track">
 
                 <div
@@ -1217,15 +2742,11 @@ function Hire() {
 
               </div>
 
-
               <small>
                 {completion}% complete
               </small>
 
             </div>
-
-
-            {/* PREVIEW */}
 
             <div className="summary-preview">
 
@@ -1233,16 +2754,15 @@ function Hire() {
                 REQUIREMENT PREVIEW
               </span>
 
-
               <h2>
-                {formData.title || "Your Requirement"}
+                {formData.title ||
+                  "Your Requirement"}
               </h2>
 
-
               <strong>
-                {formData.type || "Product / Service / Project"}
+                {formData.type ||
+                  "Product / Service / Project"}
               </strong>
-
 
               <p>
                 {formData.description ||
@@ -1251,10 +2771,29 @@ function Hire() {
 
             </div>
 
-
-            {/* DETAILS */}
-
             <div className="summary-details">
+
+              <div>
+                <span>
+                  Country
+                </span>
+
+                <strong>
+                  {formData.country ||
+                    "Not specified"}
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Currency
+                </span>
+
+                <strong>
+                  {formData.currency ||
+                    "Not specified"}
+                </strong>
+              </div>
 
               <div>
                 <span>
@@ -1262,10 +2801,10 @@ function Hire() {
                 </span>
 
                 <strong>
-                  {formData.type || "Not specified"}
+                  {formData.type ||
+                    "Not specified"}
                 </strong>
               </div>
-
 
               <div>
                 <span>
@@ -1273,10 +2812,10 @@ function Hire() {
                 </span>
 
                 <strong>
-                  {formData.category || "Not specified"}
+                  {formData.category ||
+                    "Not specified"}
                 </strong>
               </div>
-
 
               <div>
                 <span>
@@ -1284,10 +2823,11 @@ function Hire() {
                 </span>
 
                 <strong>
-                  {formData.budget || "Not specified"}
+                  {formData.budget
+                    ? `${formData.currency} ${formData.budget}`
+                    : "Not specified"}
                 </strong>
               </div>
-
 
               <div>
                 <span>
@@ -1295,10 +2835,10 @@ function Hire() {
                 </span>
 
                 <strong>
-                  {formData.processing || "Not specified"}
+                  {formData.processing ||
+                    "Not specified"}
                 </strong>
               </div>
-
 
               <div>
                 <span>
@@ -1306,10 +2846,10 @@ function Hire() {
                 </span>
 
                 <strong>
-                  {formData.standardTimeline || "Not specified"}
+                  {formData.standardTimeline ||
+                    "Not specified"}
                 </strong>
               </div>
-
 
               <div>
                 <span>
@@ -1317,10 +2857,10 @@ function Hire() {
                 </span>
 
                 <strong>
-                  {formData.location || "Not specified"}
+                  {formData.location ||
+                    "Not specified"}
                 </strong>
               </div>
-
 
               <div>
                 <span>
@@ -1328,10 +2868,10 @@ function Hire() {
                 </span>
 
                 <strong>
-                  {formData.humanResources || "Not specified"}
+                  {formData.humanResources ||
+                    "Not specified"}
                 </strong>
               </div>
-
 
               <div>
                 <span>
@@ -1339,14 +2879,12 @@ function Hire() {
                 </span>
 
                 <strong>
-                  {formData.communicationMethod || "Not specified"}
+                  {formData.communicationMethod ||
+                    "Not specified"}
                 </strong>
               </div>
 
             </div>
-
-
-            {/* CHECKLIST */}
 
             <div className="summary-checklist">
 
@@ -1354,46 +2892,49 @@ function Hire() {
                 BEFORE POSTING
               </span>
 
+              <p>
+                ✓ Country selected
+              </p>
+
+              <p>
+                ✓ Currency selected
+              </p>
 
               <p>
                 ✓ Clear requirement title
               </p>
 
-
               <p>
                 ✓ Requirement type selected
               </p>
 
+              <p>
+                ✓ Appropriate category selected
+              </p>
 
               <p>
                 ✓ Detailed requirement description
               </p>
 
-
               <p>
                 ✓ Scope and deliverables defined
               </p>
-
 
               <p>
                 ✓ Budget and processing defined
               </p>
 
-
               <p>
                 ✓ Timeline mentioned
               </p>
-
 
               <p>
                 ✓ Human resources and skills mentioned
               </p>
 
-
               <p>
                 ✓ Tools and resources defined
               </p>
-
 
               <p>
                 ✓ Location and communication selected
@@ -1406,9 +2947,6 @@ function Hire() {
         </section>
 
       </main>
-
-
-      {/* ================= FOOTER ================= */}
 
       <Footer />
 

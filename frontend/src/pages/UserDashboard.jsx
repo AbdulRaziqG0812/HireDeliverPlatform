@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+
 import {
   ResponsiveContainer,
   LineChart,
@@ -24,7 +25,7 @@ const STATUS_CONFIG = {
   Pending: {
     label: "Pending",
     className: "status-pending",
-    description: "Your submission is waiting for review.",
+    description: "Your submission is waiting for Admin approval. Full details will be available after approval.",
     icon: "◷",
   },
   Approved: {
@@ -48,7 +49,7 @@ const STATUS_CONFIG = {
   Rejected: {
     label: "Rejected",
     className: "status-rejected",
-    description: "Your submission was rejected.",
+    description: "Your submission was not approved by the administration team.",
     icon: "!",
   },
 };
@@ -127,6 +128,7 @@ const FIELD_LABELS = {
   notification_details: "Additional Notification Details",
 
   portfolio: "Portfolio / Website / Demo Link",
+  socialMediaLink: "Social Media / Professional Profile Link",
 
   similarExperience: "Similar Experience",
   similar_experience: "Similar Experience",
@@ -149,6 +151,7 @@ EXACT FORM SECTIONS
 const SECTION_FIELDS = {
   hire: {
     "Basic Information": [
+      "country",
       "title",
       "type",
       "category",
@@ -161,6 +164,7 @@ const SECTION_FIELDS = {
     ],
 
     "Budget & Processing": [
+      "currency",
       "budget",
       "processing",
       "standardTimeline",
@@ -243,6 +247,7 @@ const SECTION_FIELDS = {
       "fullLocation",
       "full_location",
       "portfolio",
+      "social_media_link",
     ],
 
     "Notification & Communication": [
@@ -485,6 +490,15 @@ function UserDashboard() {
       STATUS_CONFIG[status] ||
       STATUS_CONFIG.Pending
     );
+  };
+
+  const isRecordApproved = (record) => {
+    const status = getRecordStatus(record);
+    return ["Approved", "In Progress", "Completed"].includes(status);
+  };
+
+  const isWaitingForApproval = (record) => {
+    return getRecordStatus(record) === "Pending";
   };
 
   /*
@@ -1014,6 +1028,7 @@ function UserDashboard() {
       record?.full_location,
 
       record?.portfolio,
+      record?.social_media_link,
 
       record?.notificationPeriod,
       record?.notification_period,
@@ -1632,17 +1647,10 @@ function UserDashboard() {
             <button
               type="button"
               className="topbar-new-btn"
-              onClick={() =>
-                navigateToCreate(
-                  activeSection ===
-                    "deliver"
-                    ? "deliver"
-                    : "hire"
-                )
-              }
+              onClick={() => navigate("/home")}
             >
               <span>+</span>
-              New
+              Home
             </button>
 
           </div>
@@ -2581,6 +2589,73 @@ function UserDashboard() {
 
 /*
 =========================================================
+APPROVAL STATE CARD
+=========================================================
+*/
+
+function ApprovalStateCard({
+  record, kind, statusConfig, formatDate, getRecordTitle,
+  getRecordType, getRecordCategory, onView,
+}) {
+  const pending = statusConfig.label === "Pending";
+
+  return (
+    <article className={`record-card approval-state-card ${pending ? "approval-state-pending" : "approval-state-rejected"}`}>
+      <div className="record-card-top">
+        <div className="record-card-type-group">
+          <span className={`record-type ${kind === "hire" ? "record-type-hire" : "record-type-deliver"}`}>
+            {kind === "hire" ? "Hire" : "Deliver"}
+          </span>
+          <span className="record-id">#{record?.id ?? "—"}</span>
+        </div>
+        <span className="record-card-date">{formatDate(record?.created_at)}</span>
+      </div>
+
+      <div className="approval-state-content">
+        <div className="approval-state-icon">{statusConfig.icon}</div>
+        <div className="approval-state-copy">
+          <div className="record-title-row">
+            <h3>{getRecordTitle(record)}</h3>
+            <StatusBadge config={statusConfig} compact />
+          </div>
+          <p className="approval-state-message">
+            {pending
+              ? "Your submission has been received successfully and is currently waiting for Admin Approval."
+              : "Your submission was not approved. Please contact the administration team if you need further information."}
+          </p>
+          <div className="approval-state-meta">
+            <div>
+              <span>{kind === "hire" ? "Requirement Type" : "Delivery Type"}</span>
+              <strong>{getRecordType(record, kind)}</strong>
+            </div>
+            <div>
+              <span>Category</span>
+              <strong>{getRecordCategory(record)}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="record-status-strip">
+        <div className="record-status-info">
+          <span>CURRENT STATUS</span>
+          <StatusBadge config={statusConfig} />
+        </div>
+        <p>{statusConfig.description}</p>
+      </div>
+
+      <div className="record-card-bottom">
+        <span>Submitted on {formatDate(record?.created_at)}</span>
+        <button type="button" className="view-record-btn" onClick={() => onView(record, kind)}>
+          View Status <span>→</span>
+        </button>
+      </div>
+    </article>
+  );
+}
+
+/*
+=========================================================
 RECORD CARD
 =========================================================
 */
@@ -2601,6 +2676,21 @@ function RecordCard({
 }) {
   const statusConfig =
     getStatusConfig(record);
+
+  if (statusConfig.label === "Pending" || statusConfig.label === "Rejected") {
+    return (
+      <ApprovalStateCard
+        record={record}
+        kind={kind}
+        statusConfig={statusConfig}
+        formatDate={formatDate}
+        getRecordTitle={getRecordTitle}
+        getRecordType={getRecordType}
+        getRecordCategory={getRecordCategory}
+        onView={onView}
+      />
+    );
+  }
 
   return (
     <article
@@ -3068,16 +3158,15 @@ function DetailsModal({
   const statusConfig =
     getStatusConfig(record);
 
-  const files =
-    getFiles(record);
+  const approved = [
+    "Approved",
+    "In Progress",
+    "Completed",
+  ].includes(statusConfig.label);
 
-  const teamMembers =
-    getTeamMembers(record);
-
-  const sections =
-    SECTION_FIELDS[
-      kind
-    ] || {};
+  const files = approved ? getFiles(record) : [];
+  const teamMembers = approved ? getTeamMembers(record) : [];
+  const sections = approved ? SECTION_FIELDS[kind] || {} : {};
 
   return (
     <div
@@ -3188,6 +3277,25 @@ function DetailsModal({
           </div>
 
         </div>
+
+        {!approved && (
+          <div className="approval-details-notice">
+            <div className="approval-details-icon">{statusConfig.icon}</div>
+            <div>
+              <span className="approval-details-eyebrow">
+                {statusConfig.label === "Pending" ? "ADMIN APPROVAL REQUIRED" : "SUBMISSION STATUS"}
+              </span>
+              <h3>
+                {statusConfig.label === "Pending" ? "Waiting for Admin Approval" : "Submission Not Approved"}
+              </h3>
+              <p>
+                {statusConfig.label === "Pending"
+                  ? "Your submission has been received successfully. The complete form details will become available in your dashboard after the administration team approves this submission."
+                  : "The complete form details are not available because this submission was not approved by the administration team."}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* BODY */}
 
@@ -3335,7 +3443,7 @@ function DetailsModal({
 
           {/* TEAM MEMBERS */}
 
-          {kind ===
+          {approved && kind ===
             "deliver" && (
             <section className="details-section">
 
@@ -3411,7 +3519,8 @@ function DetailsModal({
 
           {/* FILES */}
 
-          <section className="details-section">
+          {approved && (
+            <section className="details-section">
 
             <div className="details-section-heading">
 
@@ -3468,7 +3577,8 @@ function DetailsModal({
               </div>
             )}
 
-          </section>
+            </section>
+          )}
 
           {/* RECORD INFORMATION */}
 
@@ -4156,6 +4266,7 @@ function isLongField(
     "communication_details",
 
     "portfolio",
+    "social_media_link",
 
     "roles",
 

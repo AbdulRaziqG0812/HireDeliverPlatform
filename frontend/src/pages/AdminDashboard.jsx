@@ -78,6 +78,10 @@ function AdminDashboard() {
   const [mobileSidebar, setMobileSidebar] = useState(false);
 
   const [importFile, setImportFile] = useState(null);
+  const [importType, setImportType] = useState("hire");
+  const [importing, setImporting] = useState(false);
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [importResult, setImportResult] = useState(null);
 
   /*
   ============================================================
@@ -587,20 +591,139 @@ function AdminDashboard() {
 
   /*
   ============================================================
-  CSV IMPORT
+  IMPORT EXCEL / CSV
   ============================================================
   */
 
-  const handleCSVImport = (e) => {
+  const handleImportFileChange = (e) => {
     const file = e.target.files?.[0];
 
-    if (!file) return;
+    if (!file) {
+      setImportFile(null);
+      return;
+    }
+
+    const lowerName = file.name.toLowerCase();
+    const allowed =
+      lowerName.endsWith(".xlsx") ||
+      lowerName.endsWith(".xlsm") ||
+      lowerName.endsWith(".csv");
+
+    if (!allowed) {
+      setImportFile(null);
+      setImportResult(null);
+      setError(
+        "Invalid file. Please select an Excel (.xlsx/.xlsm) or CSV file."
+      );
+      return;
+    }
 
     setImportFile(file);
+    setImportResult(null);
+    setError("");
+  };
 
-    setError(
-      "CSV import interface is ready. Backend bulk-import endpoint can be connected when CSV import processing is enabled."
-    );
+  const handleImportRecords = async () => {
+    if (!importFile) {
+      setError("Please select an Excel or CSV file first.");
+      return;
+    }
+
+    setImporting(true);
+    setError("");
+    setImportResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("type", importType);
+      formData.append("file", importFile);
+
+      const response = await fetch(
+        `${API_BASE}/api/admin/records/import`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Unable to import records."
+        );
+      }
+
+      setImportResult(data);
+      setImportFile(null);
+
+      await loadRecords(
+        1,
+        recordType,
+        search,
+        pagination.per_page
+      );
+    } catch (err) {
+      setError(
+        err.message || "Unable to import records."
+      );
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const downloadImportTemplate = async () => {
+    setTemplateLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `${API_BASE}/api/admin/records/import/template?type=${importType}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const data = await response.json().catch(
+          () => null
+        );
+
+        throw new Error(
+          data?.message ||
+            "Unable to download import template."
+        );
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download =
+        importType === "hire"
+          ? "Hire_Import_Template.xlsx"
+          : "Deliver_Import_Template.xlsx";
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(
+        err.message ||
+          "Unable to download import template."
+      );
+    } finally {
+      setTemplateLoading(false);
+    }
   };
 
   /*
@@ -931,12 +1054,18 @@ function AdminDashboard() {
                   : "DELIVER PROPOSAL"}
               </div>
 
-              <h2>
+              <h2 className="details-record-title">
                 {formatValue(record.title)}
               </h2>
 
-              <p>
+              <p className="details-record-number">
                 Record #{record.id}
+                {record.user_name || record.user?.name
+                  ? ` • ${formatValue(
+                      record.user_name ||
+                        record.user?.name
+                    )}`
+                  : ""}
               </p>
             </div>
 
@@ -1091,10 +1220,15 @@ function AdminDashboard() {
               </div>
 
               <div className="detail-grid">
-                {!isHire && (
+                <DetailField
+                  label="Country"
+                  value={record.country}
+                />
+
+                {isHire && (
                   <DetailField
-                    label="Country"
-                    value={record.country}
+                    label="Currency"
+                    value={record.currency}
                   />
                 )}
 
@@ -1493,37 +1627,45 @@ function AdminDashboard() {
                 </section>
               )}
 
-            {/* LOCATION & PROOF - DELIVER ONLY */}
+              {/* LOCATION & PROOF - DELIVER ONLY */}
 
-            {!isHire && (
-              <section className="detail-section">
-                <div className="detail-section-heading">
-                  <div className="section-icon">
-                    🔗
+              {!isHire && (
+                <section className="detail-section">
+                  <div className="detail-section-heading">
+                    <div className="section-icon">
+                      🔗
+                    </div>
+
+                    <div>
+                      <h3>
+                        Portfolio & Proof
+                      </h3>
+
+                      <p>
+                        Proof and portfolio information from the Deliver form
+                      </p>
+                    </div>
                   </div>
 
-                  <div>
-                    <h3>
-                      Portfolio & Proof
-                    </h3>
+                  <div className="detail-grid">
+                    <DetailField
+                      label="Portfolio / Website / Demo Link"
+                      value={
+                        record.portfolio
+                      }
+                      full
+                    />
 
-                    <p>
-                      Proof and portfolio information from the Deliver form
-                    </p>
+                    <DetailField
+                      label="Social Media / Professional Profile Link"
+                      value={
+                        record.social_media_link
+                      }
+                      full
+                    />
                   </div>
-                </div>
-
-                <div className="detail-grid">
-                  <DetailField
-                    label="Portfolio / Website / Demo Link"
-                    value={
-                      record.portfolio
-                    }
-                    full
-                  />
-                </div>
-              </section>
-            )}
+                </section>
+              )}
 
             {/* NOTIFICATION & COMMUNICATION */}
 
@@ -2508,60 +2650,277 @@ function AdminDashboard() {
   );
 
   const renderImportSection = () => (
-    <div className="placeholder-section">
-      <div className="placeholder-icon">
-        ⇧
-      </div>
-
-      <h1>
-        Import CSV
-      </h1>
-
-      <p>
-        Select a CSV file for bulk record
-        processing.
-      </p>
-
-      <div className="import-card">
-        <label className="csv-upload">
-          <input
-            type="file"
-            accept=".csv"
-            onChange={
-              handleCSVImport
-            }
-          />
-
-          <span className="upload-icon">
-            ⇧
+    <div className="import-page">
+      <div className="section-page-heading">
+        <div>
+          <span className="eyebrow">
+            BULK DATA MANAGEMENT
           </span>
 
-          <strong>
-            Choose CSV File
-          </strong>
+          <h1>
+            Import Records
+          </h1>
 
-          <small>
-            CSV files only
-          </small>
-        </label>
+          <p>
+            Import Hire or Deliver records from Excel or CSV.
+            Ownership is matched using the registered user's email.
+          </p>
+        </div>
+      </div>
 
-        {importFile && (
-          <div className="selected-import-file">
-            <span>
-              📄
+      <div className="import-layout">
+        <div className="import-main-card">
+          <div className="import-card-heading">
+            <div className="import-heading-icon">
+              ⇧
+            </div>
+
+            <div>
+              <h2>
+                Upload Record Data
+              </h2>
+
+              <p>
+                Imported records are created as Pending and follow
+                the same Admin Approval workflow as normal submissions.
+              </p>
+            </div>
+          </div>
+
+          <div className="import-type-row">
+            <div className="import-type-option">
+              <label>
+                Record Type
+              </label>
+
+              <select
+                value={importType}
+                onChange={(e) => {
+                  setImportType(e.target.value);
+                  setImportFile(null);
+                  setImportResult(null);
+                  setError("");
+                }}
+              >
+                <option value="hire">
+                  Hire Records
+                </option>
+
+                <option value="deliver">
+                  Deliver Records
+                </option>
+              </select>
+            </div>
+
+            <button
+              type="button"
+              className="template-button"
+              onClick={downloadImportTemplate}
+              disabled={templateLoading}
+            >
+              {templateLoading
+                ? "Preparing..."
+                : "⇩ Download Template"}
+            </button>
+          </div>
+
+          <label className="modern-import-upload">
+            <input
+              type="file"
+              accept=".xlsx,.xlsm,.csv"
+              onChange={handleImportFileChange}
+            />
+
+            <span className="modern-upload-icon">
+              ⇧
             </span>
 
             <strong>
-              {importFile.name}
+              {importFile
+                ? "Choose a different file"
+                : "Choose Excel or CSV file"}
             </strong>
-          </div>
-        )}
 
-        <div className="import-note">
-          CSV import interface is prepared for
-          bulk-entry integration.
+            <small>
+              Supported: .xlsx, .xlsm, .csv
+            </small>
+          </label>
+
+          {importFile && (
+            <div className="import-selected-file">
+              <div className="selected-file-icon">
+                📄
+              </div>
+
+              <div className="selected-file-info">
+                <strong>
+                  {importFile.name}
+                </strong>
+
+                <span>
+                  {(importFile.size / 1024).toFixed(1)} KB
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setImportFile(null);
+                  setImportResult(null);
+                }}
+                aria-label="Remove selected file"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="import-submit-button"
+            onClick={handleImportRecords}
+            disabled={!importFile || importing}
+          >
+            {importing
+              ? "Importing Records..."
+              : `⇧ Import ${
+                  importType === "hire"
+                    ? "Hire"
+                    : "Deliver"
+                } Records`}
+          </button>
+        </div>
+
+        <div className="import-side-card">
+          <div className="import-side-icon">
+            ✓
+          </div>
+
+          <h3>
+            How User Assignment Works
+          </h3>
+
+          <p>
+            Every imported record must contain the email address
+            of an existing registered user.
+          </p>
+
+          <div className="import-rule">
+            <span>1</span>
+            <div>
+              <strong>User Email</strong>
+              <small>
+                This is the authoritative ownership key.
+              </small>
+            </div>
+          </div>
+
+          <div className="import-rule">
+            <span>2</span>
+            <div>
+              <strong>User Name</strong>
+              <small>
+                Informational only. It does not assign ownership.
+              </small>
+            </div>
+          </div>
+
+          <div className="import-rule">
+            <span>3</span>
+            <div>
+              <strong>Approval</strong>
+              <small>
+                Imported records start as Pending and become
+                visible as full records after Admin approval.
+              </small>
+            </div>
+          </div>
+
+          {importType === "deliver" && (
+            <div className="import-deliver-note">
+              <strong>Deliver Team Members</strong>
+              <span>
+                For Excel imports, use the separate
+                “Deliver Team Members” sheet from the template
+                and keep the same Import Key.
+              </span>
+            </div>
+          )}
+
+          <div className="import-format-note">
+            <strong>Important</strong>
+            <span>
+              Use the provided template so column names match
+              the backend import structure correctly.
+            </span>
+          </div>
         </div>
       </div>
+
+      {importResult && (
+        <div className="import-result-card">
+          <div className="import-result-top">
+            <div>
+              <span className="import-result-badge">
+                IMPORT COMPLETED
+              </span>
+
+              <h3>
+                {importResult.message ||
+                  "Import completed successfully."}
+              </h3>
+            </div>
+
+            <div className="import-result-check">
+              ✓
+            </div>
+          </div>
+
+          <div className="import-result-stats">
+            <div>
+              <span>Records Imported</span>
+              <strong>
+                {importResult.imported_records || 0}
+              </strong>
+            </div>
+
+            {importType === "deliver" && (
+              <div>
+                <span>Team Members Imported</span>
+                <strong>
+                  {importResult.imported_team_members || 0}
+                </strong>
+              </div>
+            )}
+
+            <div>
+              <span>Skipped Rows</span>
+              <strong>
+                {importResult.skipped_records || 0}
+              </strong>
+            </div>
+          </div>
+
+          {Array.isArray(importResult.errors) &&
+            importResult.errors.length > 0 && (
+              <div className="import-errors">
+                <strong>
+                  Rows requiring attention
+                </strong>
+
+                <ul>
+                  {importResult.errors.map(
+                    (item, index) => (
+                      <li key={`${index}-${item}`}>
+                        {item}
+                      </li>
+                    )
+                  )}
+                </ul>
+              </div>
+            )}
+        </div>
+      )}
     </div>
   );
 
@@ -4889,484 +5248,1029 @@ function AdminDashboard() {
           overflow-wrap: anywhere;
           word-break: break-word;
         }
-      `}</style>
 
-      {/* ====================================================
-          SIDEBAR
-      ==================================================== */}
+        /* =====================================================
+           FINAL DISPLAY / RESPONSIVE FIXES
+        ===================================================== */
 
-      <aside
-        className={`admin-sidebar ${
-          mobileSidebar
-            ? "mobile-open"
-            : ""
-        }`}
+        .admin-sidebar {
+          overflow-y: auto;
+          overflow-x: hidden;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(148,163,184,0.35) transparent;
+        }
+
+        .admin-sidebar::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .admin-sidebar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .admin-sidebar::-webkit-scrollbar-thumb {
+          background: rgba(148,163,184,0.32);
+          border-radius: 999px;
+        }
+
+        .sidebar-nav {
+          flex-shrink: 0;
+        }
+
+        .sidebar-spacer {
+          min-height: 18px;
+          flex: 1 1 auto;
+        }
+
+        .admin-profile {
+          flex-shrink: 0;
+          margin-top: auto;
+          background: rgba(15,23,42,0.18);
+        }
+
+        .admin-profile-info strong,
+        .topbar-admin-text strong {
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+
+        .details-modal-header > div:first-child {
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+
+        .details-record-title {
+          margin: 14px 0 5px !important;
+          max-width: none !important;
+          color: #ffffff;
+          font-size: 22px !important;
+          font-weight: 800;
+          line-height: 1.35 !important;
+          white-space: normal !important;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+
+        .details-record-number {
+          white-space: normal;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+
+        .detail-field strong {
+          white-space: pre-wrap !important;
+          overflow-wrap: anywhere !important;
+          word-break: break-word !important;
+          max-width: 100%;
+        }
+
+        .team-member-content {
+          min-width: 0;
+          flex: 1;
+        }
+
+        .team-member-heading > div:last-child {
+          min-width: 0;
+        }
+
+        .team-member-heading h4,
+        .team-member-heading span {
+          white-space: normal !important;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+
+        .import-page {
+          width: 100%;
+          max-width: 1250px;
+        }
+
+        .section-page-heading {
+          margin-bottom: 22px;
+        }
+
+        .section-page-heading h1 {
+          margin: 7px 0 5px;
+          color: #172033;
+          font-size: 28px;
+          line-height: 1.2;
+        }
+
+        .section-page-heading p {
+          margin: 0;
+          max-width: 780px;
+          color: #7b8798;
+          font-size: 13px;
+          line-height: 1.65;
+        }
+
+        .import-layout {
+          display: grid;
+          grid-template-columns: minmax(0, 1.55fr) minmax(290px, 0.85fr);
+          gap: 18px;
+          align-items: start;
+        }
+
+        .import-main-card,
+        .import-side-card,
+        .import-result-card {
+          background: #ffffff;
+          border: 1px solid #e7ecf3;
+          border-radius: 16px;
+          box-shadow: 0 8px 25px rgba(15,23,42,0.045);
+        }
+
+        .import-main-card {
+          padding: 24px;
+        }
+
+        .import-card-heading {
+          display: flex;
+          align-items: flex-start;
+          gap: 13px;
+          margin-bottom: 22px;
+        }
+
+        .import-heading-icon {
+          width: 44px;
+          height: 44px;
+          flex: 0 0 44px;
+          display: grid;
+          place-items: center;
+          border-radius: 12px;
+          color: #ffffff;
+          background: linear-gradient(135deg,#6366f1,#06b6d4);
+          font-size: 20px;
+          font-weight: 800;
+        }
+
+        .import-card-heading h2 {
+          margin: 0;
+          color: #172033;
+          font-size: 17px;
+        }
+
+        .import-card-heading p {
+          margin: 5px 0 0;
+          color: #7b8798;
+          font-size: 11px;
+          line-height: 1.6;
+        }
+
+        .import-type-row {
+          display: flex;
+          align-items: flex-end;
+          gap: 12px;
+          margin-bottom: 15px;
+        }
+
+        .import-type-option {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .import-type-option label {
+          display: block;
+          margin-bottom: 6px;
+          color: #64748b;
+          font-size: 10px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: .5px;
+        }
+
+        .import-type-option select {
+          width: 100%;
+          min-height: 42px;
+          padding: 0 12px;
+          border: 1px solid #dbe2ec;
+          border-radius: 10px;
+          background: #ffffff;
+          color: #334155;
+          font-size: 12px;
+          font-weight: 600;
+          outline: none;
+        }
+
+        .import-type-option select:focus {
+          border-color: #818cf8;
+          box-shadow: 0 0 0 3px rgba(99,102,241,.10);
+        }
+
+        .template-button {
+          min-height: 42px;
+          padding: 0 15px;
+          border: 1px solid #dbe2ec;
+          border-radius: 10px;
+          background: #f8fafc;
+          color: #334155;
+          cursor: pointer;
+          font-size: 11px;
+          font-weight: 750;
+          white-space: nowrap;
+        }
+
+        .template-button:hover:not(:disabled) {
+          border-color: #818cf8;
+          color: #4338ca;
+          background: #f8f8ff;
+        }
+
+        .template-button:disabled {
+          opacity: .6;
+          cursor: not-allowed;
+        }
+
+        .modern-import-upload {
+          min-height: 180px;
+          border: 2px dashed #cbd5e1;
+          border-radius: 13px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          cursor: pointer;
+          transition: .2s ease;
+          background: #fbfdff;
+        }
+
+        .modern-import-upload:hover {
+          border-color: #6366f1;
+          background: #fafaff;
+        }
+
+        .modern-import-upload input {
+          display: none;
+        }
+
+        .modern-upload-icon {
+          width: 46px;
+          height: 46px;
+          display: grid;
+          place-items: center;
+          border-radius: 12px;
+          background: #eef2ff;
+          color: #4f46e5;
+          font-size: 21px;
+          font-weight: 800;
+        }
+
+        .modern-import-upload strong {
+          margin-top: 10px;
+          color: #334155;
+          font-size: 13px;
+        }
+
+        .modern-import-upload small {
+          margin-top: 4px;
+          color: #94a3b8;
+          font-size: 10px;
+        }
+
+        .import-selected-file {
+          margin-top: 12px;
+          padding: 12px 13px;
+          border: 1px solid #dfe6ef;
+          border-radius: 11px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          background: #f8fafc;
+        }
+
+        .selected-file-icon {
+          width: 35px;
+          height: 35px;
+          display: grid;
+          place-items: center;
+          border-radius: 9px;
+          background: #eef2ff;
+        }
+
+        .selected-file-info {
+          min-width: 0;
+          flex: 1;
+        }
+
+        .selected-file-info strong {
+          display: block;
+          color: #334155;
+          font-size: 11px;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+
+        .selected-file-info span {
+          display: block;
+          margin-top: 3px;
+          color: #94a3b8;
+          font-size: 9px;
+        }
+
+        .import-selected-file > button {
+          width: 30px;
+          height: 30px;
+          flex: 0 0 30px;
+          border: none;
+          border-radius: 8px;
+          background: #fef2f2;
+          color: #dc2626;
+          cursor: pointer;
+          font-size: 18px;
+        }
+
+        .import-submit-button {
+          width: 100%;
+          min-height: 44px;
+          margin-top: 14px;
+          border: none;
+          border-radius: 10px;
+          background: linear-gradient(135deg,#6366f1,#06b6d4);
+          color: #ffffff;
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 800;
+          box-shadow: 0 8px 20px rgba(99,102,241,.18);
+        }
+
+        .import-submit-button:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 11px 24px rgba(99,102,241,.23);
+        }
+
+        .import-submit-button:disabled {
+          opacity: .55;
+          cursor: not-allowed;
+          box-shadow: none;
+        }
+
+        .import-side-card {
+          padding: 22px;
+        }
+
+        .import-side-icon {
+          width: 38px;
+          height: 38px;
+          display: grid;
+          place-items: center;
+          border-radius: 10px;
+          background: #ecfdf5;
+          border: 1px solid #bbf7d0;
+          color: #059669;
+          font-weight: 900;
+        }
+
+        .import-side-card h3 {
+          margin: 14px 0 6px;
+          color: #172033;
+          font-size: 15px;
+        }
+
+        .import-side-card > p {
+          margin: 0 0 16px;
+          color: #7b8798;
+          font-size: 11px;
+          line-height: 1.65;
+        }
+
+        .import-rule {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          padding: 11px 0;
+          border-top: 1px solid #edf1f6;
+        }
+
+        .import-rule > span {
+          width: 24px;
+          height: 24px;
+          flex: 0 0 24px;
+          display: grid;
+          place-items: center;
+          border-radius: 7px;
+          background: #eef2ff;
+          color: #4f46e5;
+          font-size: 10px;
+          font-weight: 800;
+        }
+
+        .import-rule strong,
+        .import-rule small {
+          display: block;
+        }
+
+        .import-rule strong {
+          color: #334155;
+          font-size: 11px;
+        }
+
+        .import-rule small {
+          margin-top: 3px;
+          color: #94a3b8;
+          font-size: 9px;
+          line-height: 1.5;
+        }
+
+        .import-deliver-note,
+        .import-format-note {
+          margin-top: 15px;
+          padding: 12px;
+          border-radius: 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .import-deliver-note {
+          background: #eff6ff;
+          border: 1px solid #bfdbfe;
+        }
+
+        .import-format-note {
+          background: #fffbeb;
+          border: 1px solid #fde68a;
+        }
+
+        .import-deliver-note strong,
+        .import-format-note strong {
+          color: #334155;
+          font-size: 10px;
+        }
+
+        .import-deliver-note span,
+        .import-format-note span {
+          color: #64748b;
+          font-size: 9px;
+          line-height: 1.55;
+        }
+
+        .import-result-card {
+          margin-top: 18px;
+          padding: 20px;
+        }
+
+        .import-result-top {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 15px;
+        }
+
+        .import-result-badge {
+          display: inline-flex;
+          padding: 5px 8px;
+          border-radius: 6px;
+          background: #ecfdf5;
+          color: #047857;
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: .5px;
+        }
+
+        .import-result-top h3 {
+          margin: 8px 0 0;
+          color: #172033;
+          font-size: 14px;
+        }
+
+        .import-result-check {
+          width: 38px;
+          height: 38px;
+          display: grid;
+          place-items: center;
+          flex: 0 0 38px;
+          border-radius: 50%;
+          background: #ecfdf5;
+          color: #059669;
+          font-weight: 900;
+        }
+
+        .import-result-stats {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+          margin-top: 17px;
+        }
+
+        .import-result-stats > div {
+          padding: 12px;
+          border: 1px solid #edf1f6;
+          border-radius: 10px;
+          background: #fafbfc;
+        }
+
+        .import-result-stats span,
+        .import-result-stats strong {
+          display: block;
+        }
+
+        .import-result-stats span {
+          color: #94a3b8;
+          font-size: 9px;
+          font-weight: 700;
+          text-transform: uppercase;
+        }
+
+        .import-result-stats strong {
+          margin-top: 5px;
+          color: #172033;
+          font-size: 20px;
+        }
+
+        .import-errors {
+          margin-top: 15px;
+          padding: 13px;
+          border: 1px solid #fecaca;
+          border-radius: 10px;
+          background: #fef2f2;
+        }
+
+        .import-errors > strong {
+          color: #991b1b;
+          font-size: 11px;
+        }
+
+        .import-errors ul {
+          margin: 8px 0 0;
+          padding-left: 17px;
+          color: #b91c1c;
+          font-size: 10px;
+          line-height: 1.6;
+        }
+
+        @media (max-width: 900px) {
+          .import-layout {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 600px) {
+          .import-main-card,
+          .import-side-card,
+          .import-result-card {
+            padding: 16px;
+          }
+
+          .import-type-row {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .template-button {
+            width: 100%;
+          }
+
+          .import-result-stats {
+            grid-template-columns: 1fr;
+          }
+
+          .section-page-heading h1 {
+            font-size: 23px;
+          }
+
+          .details-modal-overlay {
+            padding: 10px;
+          }
+
+          .details-modal-header {
+            padding: 17px;
+          }
+
+          .details-record-title {
+            font-size: 17px !important;
+          }
+        }
+        `}
+</style>
+
+{/* ====================================================
+    SIDEBAR
+==================================================== */}
+
+<aside
+  className={`admin-sidebar ${
+    mobileSidebar ? "mobile-open" : ""
+  }`}
+>
+  <div className="admin-brand">
+    <div className="brand-logo">
+      HD
+    </div>
+
+    <div className="brand-text">
+      <strong>HireDeliver</strong>
+      <span>Admin Panel</span>
+    </div>
+  </div>
+
+  <div className="sidebar-label">
+    Main
+  </div>
+
+  <nav className="sidebar-nav">
+    <button
+      type="button"
+      className={`sidebar-button ${
+        activeSection === "overview"
+          ? "active"
+          : ""
+      }`}
+      onClick={() =>
+        handleSectionChange("overview")
+      }
+    >
+      <span className="sidebar-icon">
+        ◈
+      </span>
+      Overview
+    </button>
+
+    <button
+      type="button"
+      className={`sidebar-button ${
+        activeSection === "hire"
+          ? "active"
+          : ""
+      }`}
+      onClick={() =>
+        handleSectionChange("hire")
+      }
+    >
+      <span className="sidebar-icon">
+        H
+      </span>
+      Hire Records
+    </button>
+
+    <button
+      type="button"
+      className={`sidebar-button ${
+        activeSection === "deliver"
+          ? "active"
+          : ""
+      }`}
+      onClick={() =>
+        handleSectionChange("deliver")
+      }
+    >
+      <span className="sidebar-icon">
+        D
+      </span>
+      Deliver Records
+    </button>
+  </nav>
+
+  <div className="sidebar-label">
+    Administration
+  </div>
+
+  <nav className="sidebar-nav">
+    <button
+      type="button"
+      className={`sidebar-button ${
+        activeSection === "users"
+          ? "active"
+          : ""
+      }`}
+      onClick={() => {
+        setActiveSection("users");
+        setMobileSidebar(false);
+      }}
+    >
+      <span className="sidebar-icon">
+        👥
+      </span>
+      Users
+    </button>
+
+    <button
+      type="button"
+      className={`sidebar-button ${
+        activeSection === "database"
+          ? "active"
+          : ""
+      }`}
+      onClick={() => {
+        setActiveSection("database");
+        setMobileSidebar(false);
+      }}
+    >
+      <span className="sidebar-icon">
+        🗄
+      </span>
+      Database
+    </button>
+
+    <button
+      type="button"
+      className={`sidebar-button ${
+        activeSection === "files"
+          ? "active"
+          : ""
+      }`}
+      onClick={() => {
+        setActiveSection("files");
+        setMobileSidebar(false);
+      }}
+    >
+      <span className="sidebar-icon">
+        📁
+      </span>
+      Files
+    </button>
+
+    <button
+      type="button"
+      className={`sidebar-button ${
+        activeSection === "import"
+          ? "active"
+          : ""
+      }`}
+      onClick={() => {
+        setActiveSection("import");
+        setMobileSidebar(false);
+      }}
+    >
+      <span className="sidebar-icon">
+        ⇧
+      </span>
+      Import Data
+    </button>
+
+    <button
+      type="button"
+      className={`sidebar-button ${
+        activeSection === "export"
+          ? "active"
+          : ""
+      }`}
+      onClick={() => {
+        setActiveSection("export");
+        setMobileSidebar(false);
+      }}
+    >
+      <span className="sidebar-icon">
+        ⇩
+      </span>
+      Export Data
+    </button>
+
+    <button
+      type="button"
+      className={`sidebar-button ${
+        activeSection === "settings"
+          ? "active"
+          : ""
+      }`}
+      onClick={() => {
+        setActiveSection("settings");
+        setMobileSidebar(false);
+      }}
+    >
+      <span className="sidebar-icon">
+        ⚙
+      </span>
+      Settings
+    </button>
+  </nav>
+
+  <div className="sidebar-spacer" />
+
+  <div className="admin-profile">
+    <div className="admin-avatar">
+      {(user?.fullName || "A")
+        .charAt(0)
+        .toUpperCase()}
+    </div>
+
+    <div className="admin-profile-info">
+      <strong>
+        {user?.fullName || "Administrator"}
+      </strong>
+
+      <span>
+        Administrator
+      </span>
+    </div>
+
+    <button
+      type="button"
+      className="logout-small"
+      onClick={handleLogout}
+      title="Logout"
+    >
+      ↪
+    </button>
+  </div>
+</aside>
+
+{/* ====================================================
+    MAIN
+==================================================== */}
+
+<div className="admin-main">
+  <header className="admin-topbar">
+    <div className="topbar-left">
+      <button
+        type="button"
+        className="mobile-menu"
+        onClick={() =>
+          setMobileSidebar(
+            !mobileSidebar
+          )
+        }
       >
-        <div className="admin-brand">
-          <div className="brand-logo">
-            HD
-          </div>
+        ☰
+      </button>
 
-          <div className="brand-text">
-            <strong>
-              HireDeliver
-            </strong>
+      <div className="topbar-title">
+        <h2>
+          {activeSection === "overview" &&
+            "Overview"}
 
-            <span>
-              Admin Panel
-            </span>
-          </div>
-        </div>
+          {activeSection === "hire" &&
+            "Hire Records"}
 
-        <div className="sidebar-label">
-          Main
-        </div>
+          {activeSection === "deliver" &&
+            "Deliver Records"}
 
-        <nav className="sidebar-nav">
-          <button
-            className={`sidebar-button ${
-              activeSection ===
-              "overview"
-                ? "active"
-                : ""
-            }`}
-            onClick={() =>
-              handleSectionChange(
-                "overview"
-              )
-            }
-          >
-            <span className="sidebar-icon">
-              ◈
-            </span>
+          {activeSection === "users" &&
+            "Users"}
 
-            Overview
-          </button>
+          {activeSection === "database" &&
+            "Database"}
 
-          <button
-            className={`sidebar-button ${
-              activeSection ===
-              "hire"
-                ? "active"
-                : ""
-            }`}
-            onClick={() =>
-              handleSectionChange(
-                "hire"
-              )
-            }
-          >
-            <span className="sidebar-icon">
-              H
-            </span>
+          {activeSection === "files" &&
+            "Files"}
 
-            Hire Records
-          </button>
+          {activeSection === "import" &&
+            "Import Data"}
 
-          <button
-            className={`sidebar-button ${
-              activeSection ===
-              "deliver"
-                ? "active"
-                : ""
-            }`}
-            onClick={() =>
-              handleSectionChange(
-                "deliver"
-              )
-            }
-          >
-            <span className="sidebar-icon">
-              D
-            </span>
+          {activeSection === "export" &&
+            "Export Data"}
 
-            Deliver Records
-          </button>
-        </nav>
+          {activeSection === "settings" &&
+            "Settings"}
+        </h2>
 
-        <div className="sidebar-label">
-          Administration
-        </div>
-
-        <nav className="sidebar-nav">
-          <button
-            className={`sidebar-button ${
-              activeSection ===
-              "users"
-                ? "active"
-                : ""
-            }`}
-            onClick={() => {
-              setActiveSection("users");
-              setMobileSidebar(false);
-            }}
-          >
-            <span className="sidebar-icon">
-              👥
-            </span>
-
-            Users
-          </button>
-
-          <button
-            className={`sidebar-button ${
-              activeSection ===
-              "database"
-                ? "active"
-                : ""
-            }`}
-            onClick={() => {
-              setActiveSection(
-                "database"
-              );
-              setMobileSidebar(false);
-            }}
-          >
-            <span className="sidebar-icon">
-              🗄
-            </span>
-
-            Database
-          </button>
-
-          <button
-            className={`sidebar-button ${
-              activeSection ===
-              "files"
-                ? "active"
-                : ""
-            }`}
-            onClick={() => {
-              setActiveSection("files");
-              setMobileSidebar(false);
-            }}
-          >
-            <span className="sidebar-icon">
-              📁
-            </span>
-
-            Files
-          </button>
-
-          <button
-            className={`sidebar-button ${
-              activeSection ===
-              "import"
-                ? "active"
-                : ""
-            }`}
-            onClick={() => {
-              setActiveSection(
-                "import"
-              );
-              setMobileSidebar(false);
-            }}
-          >
-            <span className="sidebar-icon">
-              ⇧
-            </span>
-
-            Import CSV
-          </button>
-
-          <button
-            className={`sidebar-button ${
-              activeSection ===
-              "export"
-                ? "active"
-                : ""
-            }`}
-            onClick={() => {
-              setActiveSection(
-                "export"
-              );
-              setMobileSidebar(false);
-            }}
-          >
-            <span className="sidebar-icon">
-              ⇩
-            </span>
-
-            Export Data
-          </button>
-
-          <button
-            className={`sidebar-button ${
-              activeSection ===
-              "settings"
-                ? "active"
-                : ""
-            }`}
-            onClick={() => {
-              setActiveSection(
-                "settings"
-              );
-              setMobileSidebar(false);
-            }}
-          >
-            <span className="sidebar-icon">
-              ⚙
-            </span>
-
-            Settings
-          </button>
-        </nav>
-
-        <div className="sidebar-spacer" />
-
-        <div className="admin-profile">
-          <div className="admin-avatar">
-            {(user?.fullName ||
-              "A")
-              .charAt(0)
-              .toUpperCase()}
-          </div>
-
-          <div className="admin-profile-info">
-            <strong>
-              {user?.fullName ||
-                "Administrator"}
-            </strong>
-
-            <span>
-              Administrator
-            </span>
-          </div>
-
-          <button
-            className="logout-small"
-            onClick={handleLogout}
-            title="Logout"
-          >
-            ↪
-          </button>
-        </div>
-      </aside>
-
-      {/* ====================================================
-          MAIN
-      ==================================================== */}
-
-      <div className="admin-main">
-        <header className="admin-topbar">
-          <div className="topbar-left">
-            <button
-              className="mobile-menu"
-              onClick={() =>
-                setMobileSidebar(
-                  !mobileSidebar
-                )
-              }
-            >
-              ☰
-            </button>
-
-            <div className="topbar-title">
-              <h2>
-                {activeSection ===
-                "overview"
-                  ? "Overview"
-                  : activeSection ===
-                    "hire"
-                  ? "Hire Records"
-                  : activeSection ===
-                    "deliver"
-                  ? "Deliver Records"
-                  : activeSection ===
-                    "users"
-                  ? "Users"
-                  : activeSection ===
-                    "database"
-                  ? "Database"
-                  : activeSection ===
-                    "files"
-                  ? "Files"
-                  : activeSection ===
-                    "import"
-                  ? "Import CSV"
-                  : activeSection ===
-                    "export"
-                  ? "Export Data"
-                  : "Settings"}
-              </h2>
-
-              <span>
-                HireDeliver Administration
-              </span>
-            </div>
-          </div>
-
-          <div className="global-search">
-            <form
-              onSubmit={
-                handleSearch
-              }
-            >
-              <span className="search-symbol">
-                ⌕
-              </span>
-
-              <input
-                type="text"
-                placeholder="Search records, users, title, category..."
-                value={searchInput}
-                onChange={(e) =>
-                  setSearchInput(
-                    e.target.value
-                  )
-                }
-              />
-
-              {searchInput && (
-                <button
-                  type="button"
-                  className="clear-search"
-                  onClick={
-                    clearSearch
-                  }
-                >
-                  ×
-                </button>
-              )}
-
-              <button
-                type="submit"
-                className="search-submit"
-              >
-                Search
-              </button>
-            </form>
-          </div>
-
-          <div className="topbar-admin">
-            <div className="topbar-admin-avatar">
-              {(user?.fullName ||
-                "A")
-                .charAt(0)
-                .toUpperCase()}
-            </div>
-
-            <div className="topbar-admin-text">
-              <strong>
-                {user?.fullName ||
-                  "Administrator"}
-              </strong>
-
-              <span>
-                Admin
-              </span>
-            </div>
-          </div>
-        </header>
-
-        <main className="admin-content">
-          {error && (
-            <div className="admin-error">
-              {error}
-            </div>
-          )}
-
-          {activeSection ===
-            "overview" &&
-            renderOverview()}
-
-          {(activeSection ===
-            "hire" ||
-            activeSection ===
-              "deliver") &&
-            renderRecords()}
-
-          {activeSection ===
-            "users" &&
-            renderUsersSection()}
-
-          {activeSection ===
-            "database" &&
-            renderDatabaseSection()}
-
-          {activeSection ===
-            "files" &&
-            renderFilesSection()}
-
-          {activeSection ===
-            "import" &&
-            renderImportSection()}
-
-          {activeSection ===
-            "export" &&
-            renderExportSection()}
-
-          {activeSection ===
-            "settings" &&
-            renderSettingsSection()}
-        </main>
+        <span>
+          HireDeliver Administration
+        </span>
       </div>
+    </div>
 
-      {/* ====================================================
-          DETAILS MODAL
-      ==================================================== */}
+    <div className="global-search">
+      <form onSubmit={handleSearch}>
+        <span className="search-symbol">
+          ⌕
+        </span>
 
-      {showDetails &&
-        selectedRecord &&
-        renderRecordDetails(
-          selectedRecord
+        <input
+          type="text"
+          placeholder="Search records, users, title, category..."
+          value={searchInput}
+          onChange={(e) =>
+            setSearchInput(e.target.value)
+          }
+        />
+
+        {searchInput && (
+          <button
+            type="button"
+            className="clear-search"
+            onClick={clearSearch}
+          >
+            ×
+          </button>
         )}
 
-      {/* ====================================================
-          DELETE CONFIRMATION
-      ==================================================== */}
-
-      {deleteRecord && (
-        <div className="delete-modal-overlay">
-          <div className="delete-modal">
-            <div className="delete-modal-icon">
-              🗑
-            </div>
-
-            <h3>
-              Delete this record?
-            </h3>
-
-            <p>
-              You are about to permanently
-              delete{" "}
-              <strong>
-                {deleteRecord.title ||
-                  "this record"}
-              </strong>
-              . Related files and team member
-              information will also be removed.
-              This action cannot be undone.
-            </p>
-
-            <div className="delete-modal-actions">
-              <button
-                className="cancel-delete"
-                onClick={() =>
-                  setDeleteRecord(null)
-                }
-                disabled={deleting}
-              >
-                Cancel
-              </button>
-
-              <button
-                className="confirm-delete"
-                onClick={
-                  confirmDelete
-                }
-                disabled={deleting}
-              >
-                {deleting
-                  ? "Deleting..."
-                  : "Yes, Delete"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        <button
+          type="submit"
+          className="search-submit"
+        >
+          Search
+        </button>
+      </form>
     </div>
-  );
+
+    <div className="topbar-admin">
+      <div className="topbar-admin-avatar">
+        {(user?.fullName || "A")
+          .charAt(0)
+          .toUpperCase()}
+      </div>
+
+      <div className="topbar-admin-text">
+        <strong>
+          {user?.fullName ||
+            "Administrator"}
+        </strong>
+
+        <span>
+          Admin
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <main className="admin-content">
+    {error && (
+      <div className="admin-error">
+        {error}
+      </div>
+    )}
+
+    {activeSection === "overview" &&
+      renderOverview()}
+
+    {(activeSection === "hire" ||
+      activeSection === "deliver") &&
+      renderRecords()}
+
+    {activeSection === "users" &&
+      renderUsersSection()}
+
+    {activeSection === "database" &&
+      renderDatabaseSection()}
+
+    {activeSection === "files" &&
+      renderFilesSection()}
+
+    {activeSection === "import" &&
+      renderImportSection()}
+
+    {activeSection === "export" &&
+      renderExportSection()}
+
+    {activeSection === "settings" &&
+      renderSettingsSection()}
+  </main>
+</div>
+
+{/* ====================================================
+    DETAILS MODAL
+==================================================== */}
+
+{showDetails &&
+  selectedRecord &&
+  renderRecordDetails(selectedRecord)}
+
+{/* ====================================================
+    DELETE CONFIRMATION
+==================================================== */}
+
+{deleteRecord && (
+  <div className="delete-modal-overlay">
+    <div className="delete-modal">
+      <div className="delete-modal-icon">
+        🗑
+      </div>
+
+      <h3>
+        Delete this record?
+      </h3>
+
+      <p>
+        You are about to permanently
+        delete{" "}
+        <strong>
+          {deleteRecord.title ||
+            "this record"}
+        </strong>
+        . Related files and team member
+        information will also be removed.
+        This action cannot be undone.
+      </p>
+
+      <div className="delete-modal-actions">
+        <button
+          type="button"
+          className="cancel-delete"
+          onClick={() =>
+            setDeleteRecord(null)
+          }
+          disabled={deleting}
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          className="confirm-delete"
+          onClick={confirmDelete}
+          disabled={deleting}
+        >
+          {deleting
+            ? "Deleting..."
+            : "Yes, Delete"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+   </div>
+);
 }
 
 export default AdminDashboard;

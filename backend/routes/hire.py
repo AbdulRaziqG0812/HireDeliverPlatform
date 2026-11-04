@@ -66,6 +66,8 @@ def submit_hire():
     # --------------------------------------------------
 
     required_fields = [
+        "country",
+        "currency",
         "title",
         "type",
         "category",
@@ -102,6 +104,16 @@ def submit_hire():
         hire = HireRequirement(
 
             user_id=user_id,
+
+            country=request.form.get(
+                "country",
+                "Pakistan"
+            ).strip(),
+
+            currency=request.form.get(
+                "currency",
+                "PKR - Pakistani Rupee"
+            ).strip(),
 
             title=request.form.get(
                 "title",
@@ -301,6 +313,10 @@ def submit_hire():
                 "id": hire.id,
 
                 "user_id": hire.user_id,
+
+                "country": hire.country,
+
+                "currency": hire.currency,
 
                 "title": hire.title,
 

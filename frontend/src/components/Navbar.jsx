@@ -15,7 +15,7 @@ function Navbar() {
     <nav className="navbar">
 
       <Link to="/home" className="logo">
-        Hire<span>Deliver</span>
+        Tcci<span>HireDeliver</span>Solutions
       </Link>
 
       <div className="nav-links">

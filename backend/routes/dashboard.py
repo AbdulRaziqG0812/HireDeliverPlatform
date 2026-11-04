@@ -19,6 +19,33 @@ dashboard_bp = Blueprint(
 )
 
 
+# =========================================================
+# HELPER
+# =========================================================
+
+def is_record_visible(status):
+    """
+    A normal user can see complete record details only
+    after admin approval.
+
+    Pending  -> hidden
+    Rejected -> hidden
+    Approved -> visible
+    In Progress -> visible
+    Completed -> visible
+    """
+
+    return status in [
+        "Approved",
+        "In Progress",
+        "Completed"
+    ]
+
+
+# =========================================================
+# USER DASHBOARD
+# =========================================================
+
 @dashboard_bp.route(
     "/",
     methods=["GET"]
@@ -28,16 +55,20 @@ def get_dashboard():
 
     user_id = get_current_user_id()
 
+    # ------------------------------------------------------
     # Admin dashboard is handled separately
+    # ------------------------------------------------------
+
     if not user_id:
         return {
             "message": "User dashboard is only available for normal users",
             "status": "error"
         }, 403
 
-    # --------------------------------------------------
-    # Current user
-    # --------------------------------------------------
+
+    # ------------------------------------------------------
+    # Current User
+    # ------------------------------------------------------
 
     user = User.query.filter_by(
         id=user_id
@@ -49,9 +80,10 @@ def get_dashboard():
             "status": "error"
         }, 404
 
-    # --------------------------------------------------
-    # User's Hire Requirements
-    # --------------------------------------------------
+
+    # ======================================================
+    # HIRE RECORDS
+    # ======================================================
 
     hire_records = HireRequirement.query.filter_by(
         user_id=user_id
@@ -61,7 +93,66 @@ def get_dashboard():
 
     hires = []
 
+
     for hire in hire_records:
+
+        status = hire.status or "Pending"
+
+        # ==================================================
+        # PENDING / REJECTED
+        # ==================================================
+        #
+        # Do NOT expose complete form data.
+        #
+
+        if not is_record_visible(status):
+
+            hires.append({
+
+                "id": hire.id,
+
+                "country": hire.country,
+
+                "title": hire.title,
+
+                "type": hire.type,
+
+                "category": hire.category,
+
+                "status": status,
+
+                "approval_required": (
+                    status == "Pending"
+                ),
+
+                "approval_message": (
+                    "Waiting for Admin Approval"
+                    if status == "Pending"
+                    else
+                    "This Hire submission was not approved."
+                ),
+
+                "files": [],
+
+                "created_at": (
+                    hire.created_at.isoformat()
+                    if hire.created_at
+                    else None
+                ),
+
+                "updated_at": (
+                    hire.updated_at.isoformat()
+                    if hire.updated_at
+                    else None
+                )
+            })
+
+            continue
+
+
+        # ==================================================
+        # APPROVED / IN PROGRESS / COMPLETED
+        # ==================================================
 
         files = HireFile.query.filter_by(
             hire_id=hire.id
@@ -69,14 +160,21 @@ def get_dashboard():
 
         hire_files = []
 
+
         for file in files:
 
             hire_files.append({
+
                 "id": file.id,
+
                 "original_name": file.original_name,
+
                 "stored_name": file.stored_name,
+
                 "file_type": file.file_type,
+
                 "file_size": file.file_size,
+
                 "uploaded_at": (
                     file.uploaded_at.isoformat()
                     if file.uploaded_at
@@ -84,10 +182,12 @@ def get_dashboard():
                 )
             })
 
+
         hires.append({
 
             "id": hire.id,
 
+            "country": hire.country,
 
             "title": hire.title,
 
@@ -100,6 +200,8 @@ def get_dashboard():
             "scope": hire.scope,
 
             "deliverables": hire.deliverables,
+
+            "currency": hire.currency,
 
             "budget": hire.budget,
 
@@ -129,7 +231,11 @@ def get_dashboard():
 
             "notification_period": hire.notification_period,
 
-            "status": hire.status,
+            "status": status,
+
+            "approval_required": False,
+
+            "approval_message": None,
 
             "files": hire_files,
 
@@ -146,9 +252,10 @@ def get_dashboard():
             )
         })
 
-    # --------------------------------------------------
-    # User's Deliver Proposals
-    # --------------------------------------------------
+
+    # ======================================================
+    # DELIVER RECORDS
+    # ======================================================
 
     deliver_records = DeliverProposal.query.filter_by(
         user_id=user_id
@@ -158,14 +265,76 @@ def get_dashboard():
 
     delivers = []
 
+
     for deliver in deliver_records:
 
-        # Team members
+        status = deliver.status or "Pending"
+
+
+        # ==================================================
+        # PENDING / REJECTED
+        # ==================================================
+        #
+        # Do NOT expose complete form data.
+        #
+
+        if not is_record_visible(status):
+
+            delivers.append({
+
+                "id": deliver.id,
+
+                "country": deliver.country,
+
+                "title": deliver.title,
+
+                "type": deliver.type,
+
+                "category": deliver.category,
+
+                "status": status,
+
+                "approval_required": (
+                    status == "Pending"
+                ),
+
+                "approval_message": (
+                    "Waiting for Admin Approval"
+                    if status == "Pending"
+                    else
+                    "This Deliver submission was not approved."
+                ),
+
+                "team_members": [],
+
+                "files": [],
+
+                "created_at": (
+                    deliver.created_at.isoformat()
+                    if deliver.created_at
+                    else None
+                ),
+
+                "updated_at": (
+                    deliver.updated_at.isoformat()
+                    if deliver.updated_at
+                    else None
+                )
+            })
+
+            continue
+
+
+        # ==================================================
+        # TEAM MEMBERS
+        # ==================================================
+
         team_members = DeliverTeamMember.query.filter_by(
             deliver_id=deliver.id
         ).all()
 
         team = []
+
 
         for member in team_members:
 
@@ -188,12 +357,17 @@ def get_dashboard():
                 )
             })
 
-        # Uploaded files
+
+        # ==================================================
+        # UPLOADED FILES
+        # ==================================================
+
         files = DeliverFile.query.filter_by(
             deliver_id=deliver.id
         ).all()
 
         deliver_files = []
+
 
         for file in files:
 
@@ -215,6 +389,11 @@ def get_dashboard():
                     else None
                 )
             })
+
+
+        # ==================================================
+        # APPROVED / IN PROGRESS / COMPLETED
+        # ==================================================
 
         delivers.append({
 
@@ -282,6 +461,8 @@ def get_dashboard():
 
             "portfolio": deliver.portfolio,
 
+            "social_media_link": deliver.social_media_link,
+
             "notification_period": (
                 deliver.notification_period
             ),
@@ -298,7 +479,11 @@ def get_dashboard():
                 deliver.communication_details
             ),
 
-            "status": deliver.status,
+            "status": status,
+
+            "approval_required": False,
+
+            "approval_message": None,
 
             "team_members": team,
 
@@ -317,9 +502,40 @@ def get_dashboard():
             )
         })
 
-    # --------------------------------------------------
-    # Final Dashboard Response
-    # --------------------------------------------------
+
+    # ======================================================
+    # SUMMARY
+    # ======================================================
+
+    pending_hires = sum(
+        1
+        for hire in hires
+        if hire.get("status") == "Pending"
+    )
+
+    pending_delivers = sum(
+        1
+        for deliver in delivers
+        if deliver.get("status") == "Pending"
+    )
+
+
+    approved_hires = sum(
+        1
+        for hire in hires
+        if hire.get("status") == "Approved"
+    )
+
+    approved_delivers = sum(
+        1
+        for deliver in delivers
+        if deliver.get("status") == "Approved"
+    )
+
+
+    # ======================================================
+    # FINAL RESPONSE
+    # ======================================================
 
     return {
 
@@ -348,7 +564,15 @@ def get_dashboard():
 
             "total_submissions": (
                 len(hires) + len(delivers)
-            )
+            ),
+
+            "pending_hires": pending_hires,
+
+            "pending_delivers": pending_delivers,
+
+            "approved_hires": approved_hires,
+
+            "approved_delivers": approved_delivers
         },
 
         "hires": hires,

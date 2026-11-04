@@ -4,73 +4,376 @@ import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-const PAKISTAN_CITIES = [
-  "Islamabad",
-  "Rawalpindi",
-  "Lahore",
-  "Karachi",
-  "Peshawar",
-  "Quetta",
-  "Multan",
-  "Faisalabad",
-  "Gujranwala",
-  "Sialkot",
-  "Hyderabad",
-  "Bahawalpur",
-  "Sargodha",
-  "Abbottabad",
-  "Mardan",
-  "Gujrat",
-  "Wah Cantt",
-  "Taxila",
-  "Murree",
-  "Jhelum",
-  "Attock",
-  "Sahiwal",
-  "Okara",
-  "Kasur",
-  "Dera Ghazi Khan",
-  "Rahim Yar Khan",
-  "Sukkur",
-  "Larkana",
-  "Nawabshah",
-  "Mingora",
-  "Chakwal",
-  "Khushab",
-  "Mianwali",
-  "Bannu",
-  "Kohat",
-  "Swat",
-  "Mansehra",
-  "Nowshera",
-  "Haripur",
-  "Dera Ismail Khan",
-  "Gwadar",
-  "Turbat",
-  "Chaman",
-  "Zhob",
-  "Khuzdar",
-  "Skardu",
-  "Gilgit",
-  "Muzaffarabad",
-  "Mirpur",
-  "Rawalakot",
+/* =========================================================
+   WORLD COUNTRIES
+   Searchable through datalist
+========================================================= */
+
+const COUNTRIES = [
+  "Afghanistan",
+  "Albania",
+  "Algeria",
+  "Andorra",
+  "Angola",
+  "Antigua and Barbuda",
+  "Argentina",
+  "Armenia",
+  "Australia",
+  "Austria",
+  "Azerbaijan",
+  "Bahamas",
+  "Bahrain",
+  "Bangladesh",
+  "Barbados",
+  "Belarus",
+  "Belgium",
+  "Belize",
+  "Benin",
+  "Bhutan",
+  "Bolivia",
+  "Bosnia and Herzegovina",
+  "Botswana",
+  "Brazil",
+  "Brunei",
+  "Bulgaria",
+  "Burkina Faso",
+  "Burundi",
+  "Cabo Verde",
+  "Cambodia",
+  "Cameroon",
+  "Canada",
+  "Central African Republic",
+  "Chad",
+  "Chile",
+  "China",
+  "Colombia",
+  "Comoros",
+  "Congo",
+  "Costa Rica",
+  "Croatia",
+  "Cuba",
+  "Cyprus",
+  "Czech Republic",
+  "Democratic Republic of the Congo",
+  "Denmark",
+  "Djibouti",
+  "Dominica",
+  "Dominican Republic",
+  "Ecuador",
+  "Egypt",
+  "El Salvador",
+  "Equatorial Guinea",
+  "Eritrea",
+  "Estonia",
+  "Eswatini",
+  "Ethiopia",
+  "Fiji",
+  "Finland",
+  "France",
+  "Gabon",
+  "Gambia",
+  "Georgia",
+  "Germany",
+  "Ghana",
+  "Greece",
+  "Grenada",
+  "Guatemala",
+  "Guinea",
+  "Guinea-Bissau",
+  "Guyana",
+  "Haiti",
+  "Honduras",
+  "Hungary",
+  "Iceland",
+  "India",
+  "Indonesia",
+  "Iran",
+  "Iraq",
+  "Ireland",
+  "Israel",
+  "Italy",
+  "Ivory Coast",
+  "Jamaica",
+  "Japan",
+  "Jordan",
+  "Kazakhstan",
+  "Kenya",
+  "Kiribati",
+  "Kuwait",
+  "Kyrgyzstan",
+  "Laos",
+  "Latvia",
+  "Lebanon",
+  "Lesotho",
+  "Liberia",
+  "Libya",
+  "Liechtenstein",
+  "Lithuania",
+  "Luxembourg",
+  "Madagascar",
+  "Malawi",
+  "Malaysia",
+  "Maldives",
+  "Mali",
+  "Malta",
+  "Marshall Islands",
+  "Mauritania",
+  "Mauritius",
+  "Mexico",
+  "Micronesia",
+  "Moldova",
+  "Monaco",
+  "Mongolia",
+  "Montenegro",
+  "Morocco",
+  "Mozambique",
+  "Myanmar",
+  "Namibia",
+  "Nauru",
+  "Nepal",
+  "Netherlands",
+  "New Zealand",
+  "Nicaragua",
+  "Niger",
+  "Nigeria",
+  "North Korea",
+  "North Macedonia",
+  "Norway",
+  "Oman",
+  "Pakistan",
+  "Palau",
+  "Palestine",
+  "Panama",
+  "Papua New Guinea",
+  "Paraguay",
+  "Peru",
+  "Philippines",
+  "Poland",
+  "Portugal",
+  "Qatar",
+  "Romania",
+  "Russia",
+  "Rwanda",
+  "Saint Kitts and Nevis",
+  "Saint Lucia",
+  "Saint Vincent and the Grenadines",
+  "Samoa",
+  "San Marino",
+  "Sao Tome and Principe",
+  "Saudi Arabia",
+  "Senegal",
+  "Serbia",
+  "Seychelles",
+  "Sierra Leone",
+  "Singapore",
+  "Slovakia",
+  "Slovenia",
+  "Solomon Islands",
+  "Somalia",
+  "South Africa",
+  "South Korea",
+  "South Sudan",
+  "Spain",
+  "Sri Lanka",
+  "Sudan",
+  "Suriname",
+  "Sweden",
+  "Switzerland",
+  "Syria",
+  "Taiwan",
+  "Tajikistan",
+  "Tanzania",
+  "Thailand",
+  "Timor-Leste",
+  "Togo",
+  "Tonga",
+  "Trinidad and Tobago",
+  "Tunisia",
+  "Turkey",
+  "Turkmenistan",
+  "Tuvalu",
+  "Uganda",
+  "Ukraine",
+  "United Arab Emirates",
+  "United Kingdom",
+  "United States",
+  "Uruguay",
+  "Uzbekistan",
+  "Vanuatu",
+  "Vatican City",
+  "Venezuela",
+  "Vietnam",
+  "Yemen",
+  "Zambia",
+  "Zimbabwe",
   "Other",
 ];
 
+/* =========================================================
+   WORLD CURRENCIES
+   Searchable through datalist
+========================================================= */
+
 const CURRENCIES = [
-  "PKR",
-  "USD",
-  "AED",
-  "SAR",
-  "QAR",
-  "OMR",
-  "KWD",
-  "GBP",
-  "EUR",
-  "CAD",
-  "AUD",
+  "AED - UAE Dirham",
+  "AFN - Afghan Afghani",
+  "ALL - Albanian Lek",
+  "AMD - Armenian Dram",
+  "ANG - Netherlands Antillean Guilder",
+  "AOA - Angolan Kwanza",
+  "ARS - Argentine Peso",
+  "AUD - Australian Dollar",
+  "AWG - Aruban Florin",
+  "AZN - Azerbaijani Manat",
+  "BAM - Bosnia and Herzegovina Convertible Mark",
+  "BBD - Barbadian Dollar",
+  "BDT - Bangladeshi Taka",
+  "BGN - Bulgarian Lev",
+  "BHD - Bahraini Dinar",
+  "BIF - Burundian Franc",
+  "BMD - Bermudian Dollar",
+  "BND - Brunei Dollar",
+  "BOB - Bolivian Boliviano",
+  "BRL - Brazilian Real",
+  "BSD - Bahamian Dollar",
+  "BTN - Bhutanese Ngultrum",
+  "BWP - Botswana Pula",
+  "BYN - Belarusian Ruble",
+  "BZD - Belize Dollar",
+  "CAD - Canadian Dollar",
+  "CDF - Congolese Franc",
+  "CHF - Swiss Franc",
+  "CLP - Chilean Peso",
+  "CNY - Chinese Yuan",
+  "COP - Colombian Peso",
+  "CRC - Costa Rican Colón",
+  "CUP - Cuban Peso",
+  "CVE - Cape Verdean Escudo",
+  "CZK - Czech Koruna",
+  "DJF - Djiboutian Franc",
+  "DKK - Danish Krone",
+  "DOP - Dominican Peso",
+  "DZD - Algerian Dinar",
+  "EGP - Egyptian Pound",
+  "ERN - Eritrean Nakfa",
+  "ETB - Ethiopian Birr",
+  "EUR - Euro",
+  "FJD - Fijian Dollar",
+  "FKP - Falkland Islands Pound",
+  "GBP - British Pound",
+  "GEL - Georgian Lari",
+  "GHS - Ghanaian Cedi",
+  "GIP - Gibraltar Pound",
+  "GMD - Gambian Dalasi",
+  "GNF - Guinean Franc",
+  "GTQ - Guatemalan Quetzal",
+  "GYD - Guyanese Dollar",
+  "HKD - Hong Kong Dollar",
+  "HNL - Honduran Lempira",
+  "HRK - Croatian Kuna",
+  "HTG - Haitian Gourde",
+  "HUF - Hungarian Forint",
+  "IDR - Indonesian Rupiah",
+  "ILS - Israeli New Shekel",
+  "INR - Indian Rupee",
+  "IQD - Iraqi Dinar",
+  "IRR - Iranian Rial",
+  "ISK - Icelandic Króna",
+  "JMD - Jamaican Dollar",
+  "JOD - Jordanian Dinar",
+  "JPY - Japanese Yen",
+  "KES - Kenyan Shilling",
+  "KGS - Kyrgyzstani Som",
+  "KHR - Cambodian Riel",
+  "KMF - Comorian Franc",
+  "KRW - South Korean Won",
+  "KWD - Kuwaiti Dinar",
+  "KYD - Cayman Islands Dollar",
+  "KZT - Kazakhstani Tenge",
+  "LAK - Lao Kip",
+  "LBP - Lebanese Pound",
+  "LKR - Sri Lankan Rupee",
+  "LRD - Liberian Dollar",
+  "LSL - Lesotho Loti",
+  "LYD - Libyan Dinar",
+  "MAD - Moroccan Dirham",
+  "MDL - Moldovan Leu",
+  "MGA - Malagasy Ariary",
+  "MKD - Macedonian Denar",
+  "MMK - Myanmar Kyat",
+  "MNT - Mongolian Tögrög",
+  "MOP - Macanese Pataca",
+  "MRU - Mauritanian Ouguiya",
+  "MUR - Mauritian Rupee",
+  "MVR - Maldivian Rufiyaa",
+  "MWK - Malawian Kwacha",
+  "MXN - Mexican Peso",
+  "MYR - Malaysian Ringgit",
+  "MZN - Mozambican Metical",
+  "NAD - Namibian Dollar",
+  "NGN - Nigerian Naira",
+  "NIO - Nicaraguan Córdoba",
+  "NOK - Norwegian Krone",
+  "NPR - Nepalese Rupee",
+  "NZD - New Zealand Dollar",
+  "OMR - Omani Rial",
+  "PAB - Panamanian Balboa",
+  "PEN - Peruvian Sol",
+  "PGK - Papua New Guinean Kina",
+  "PHP - Philippine Peso",
+  "PKR - Pakistani Rupee",
+  "PLN - Polish Złoty",
+  "PYG - Paraguayan Guaraní",
+  "QAR - Qatari Riyal",
+  "RON - Romanian Leu",
+  "RSD - Serbian Dinar",
+  "RUB - Russian Ruble",
+  "RWF - Rwandan Franc",
+  "SAR - Saudi Riyal",
+  "SBD - Solomon Islands Dollar",
+  "SCR - Seychellois Rupee",
+  "SDG - Sudanese Pound",
+  "SEK - Swedish Krona",
+  "SGD - Singapore Dollar",
+  "SHP - Saint Helena Pound",
+  "SLE - Sierra Leonean Leone",
+  "SOS - Somali Shilling",
+  "SRD - Surinamese Dollar",
+  "SSP - South Sudanese Pound",
+  "STN - São Tomé and Príncipe Dobra",
+  "SYP - Syrian Pound",
+  "SZL - Eswatini Lilangeni",
+  "THB - Thai Baht",
+  "TJS - Tajikistani Somoni",
+  "TMT - Turkmenistan Manat",
+  "TND - Tunisian Dinar",
+  "TOP - Tongan Paʻanga",
+  "TRY - Turkish Lira",
+  "TTD - Trinidad and Tobago Dollar",
+  "TWD - New Taiwan Dollar",
+  "TZS - Tanzanian Shilling",
+  "UAH - Ukrainian Hryvnia",
+  "UGX - Ugandan Shilling",
+  "USD - US Dollar",
+  "UYU - Uruguayan Peso",
+  "UZS - Uzbekistani Som",
+  "VES - Venezuelan Bolívar",
+  "VND - Vietnamese Dong",
+  "VUV - Vanuatu Vatu",
+  "WST - Samoan Tala",
+  "XAF - Central African CFA Franc",
+  "XCD - East Caribbean Dollar",
+  "XOF - West African CFA Franc",
+  "XPF - CFP Franc",
+  "YER - Yemeni Rial",
+  "ZAR - South African Rand",
+  "ZMW - Zambian Kwacha",
+  "ZWL - Zimbabwean Dollar",
 ];
+
+/* =========================================================
+   TEAM MEMBER
+========================================================= */
 
 const createTeamMember = () => ({
   name: "",
@@ -83,8 +386,6 @@ const createTeamMember = () => ({
 });
 
 function Deliver() {
-
-
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -92,6 +393,10 @@ function Deliver() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
   const [submitError, setSubmitError] = useState("");
+
+  const [cities, setCities] = useState([]);
+  const [isLoadingCities, setIsLoadingCities] = useState(false);
+  const [cityError, setCityError] = useState("");
 
   const [formData, setFormData] = useState({
     country: "Pakistan",
@@ -104,7 +409,7 @@ function Deliver() {
     scope: "",
     deliverables: "",
 
-    currency: "PKR",
+    currency: "PKR - Pakistani Rupee",
     amount: "",
     includedCost: "",
     excludedCost: "",
@@ -126,6 +431,8 @@ function Deliver() {
     fullLocation: "",
 
     portfolio: "",
+    socialMediaLink: "",
+
     uploadedFiles: [],
 
     notificationPeriod: "",
@@ -135,424 +442,380 @@ function Deliver() {
     communicationDetails: "",
   });
 
-/* ================= GENERAL INPUT ================= */
+  /* =========================================================
+     LOAD CITIES BASED ON COUNTRY
+  ========================================================= */
 
-const handleChange = (e) => {
-  const { name, value } = e.target;
-
-  setFormData((prev) => ({
-    ...prev,
-    [name]: value,
-  }));
-};
-
-
-/* ================= SUBMIT FORM ================= */
-
-const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  setIsSubmitting(true);
-  setSubmitMessage("");
-  setSubmitError("");
-
-  try {
-    // Get JWT token from localStorage
-    const accessToken = localStorage.getItem(
-      "hireDeliverAccessToken"
-    );
-
-    // Check login token
-    if (!accessToken) {
-      setSubmitError(
-        "Your login session has expired. Please login again."
-      );
-
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Create FormData
-    const data = new FormData();
-
-    // =========================
-    // BASIC INFORMATION
-    // =========================
-
-    data.append(
-      "country",
-      formData.country
-    );
-
-    data.append(
-      "title",
-      formData.title
-    );
-
-    data.append(
-      "type",
-      formData.type
-    );
-
-    data.append(
-      "category",
-      formData.category
-    );
-
-    // =========================
-    // PROJECT DETAILS
-    // =========================
-
-    data.append(
-      "description",
-      formData.description
-    );
-
-    data.append(
-      "scope",
-      formData.scope
-    );
-
-    data.append(
-      "deliverables",
-      formData.deliverables
-    );
-
-    // =========================
-    // COST INFORMATION
-    // =========================
-
-    data.append(
-      "currency",
-      formData.currency
-    );
-
-    data.append(
-      "amount",
-      formData.amount
-    );
-
-    data.append(
-      "includedCost",
-      formData.includedCost
-    );
-
-    data.append(
-      "excludedCost",
-      formData.excludedCost
-    );
-
-    // =========================
-    // PROCESSING & TIMELINE
-    // =========================
-
-    data.append(
-      "processing",
-      formData.processing
-    );
-
-    data.append(
-      "standardTimeline",
-      formData.standardTimeline
-    );
-
-    data.append(
-      "urgentTimeline",
-      formData.urgentTimeline
-    );
-
-    // =========================
-    // TEAM MEMBERS
-    // =========================
-
-    const teamMembersForSubmit =
-      formData.teamMembers.map((member) => ({
-        name: member.name,
-        role: member.role,
-        skills: member.skills,
-        experience: member.experience,
-
-        // Save profile file names in team member record
-        profile: (member.profileFiles || [])
-          .map((file) => file.name)
-          .join(", "),
-
-        similarExperience:
-          member.similarExperience,
-      }));
-
-    data.append(
-      "teamMembers",
-      JSON.stringify(teamMembersForSubmit)
-    );
-
-    // =========================
-    // RESOURCES
-    // =========================
-
-    data.append(
-      "availableResources",
-      formData.availableResources
-    );
-
-    data.append(
-      "requiredResources",
-      formData.requiredResources
-    );
-
-    data.append(
-      "tools",
-      formData.tools
-    );
-
-    data.append(
-      "physicalResources",
-      formData.physicalResources
-    );
-
-    data.append(
-      "additionalResources",
-      formData.additionalResources
-    );
-
-    // =========================
-    // LOCATION
-    // =========================
-
-    data.append(
-      "city",
-      formData.city
-    );
-
-    data.append(
-      "fullLocation",
-      formData.fullLocation
-    );
-
-    // =========================
-    // PORTFOLIO
-    // =========================
-
-    data.append(
-      "portfolio",
-      formData.portfolio
-    );
-
-    // =========================
-    // NOTIFICATION
-    // =========================
-
-    data.append(
-      "notificationPeriod",
-      formData.notificationPeriod
-    );
-
-    data.append(
-      "notificationDetails",
-      formData.notificationDetails
-    );
-
-    // =========================
-    // COMMUNICATION
-    // =========================
-
-    data.append(
-      "communicationMethod",
-      formData.communicationMethod
-    );
-
-    data.append(
-      "communicationDetails",
-      formData.communicationDetails
-    );
-
-    // =========================
-    // SUPPORTING FILES
-    // =========================
-
-    // General supporting files
-    formData.uploadedFiles.forEach((file) => {
-      data.append(
-        "uploadedFiles",
-        file
-      );
-    });
-
-    // Team member profile files
-    formData.teamMembers.forEach((member) => {
-      (member.profileFiles || []).forEach((file) => {
-        data.append(
-          "uploadedFiles",
-          file
-        );
-      });
-    });
-
-    // =========================
-    // SEND REQUEST
-    // =========================
-
-    const response = await fetch(
-      "http://127.0.0.1:5000/api/deliver/submit",
-      {
-        method: "POST",
-
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-
-        // IMPORTANT:
-        // Do NOT manually set Content-Type.
-        // Browser automatically sets multipart/form-data
-        // boundary when using FormData.
-        body: data,
+  useEffect(() => {
+    const loadCities = async () => {
+      if (!formData.country || formData.country === "Other") {
+        setCities([]);
+        setCityError("");
+        return;
       }
-    );
 
-    // =========================
-    // READ RESPONSE
-    // =========================
+      setIsLoadingCities(true);
+      setCityError("");
+      setCities([]);
 
-    const result = await response.json();
+      try {
+        const response = await fetch(
+          `https://countriesnow.space/api/v0.1/countries/cities/q?country=${encodeURIComponent(
+            formData.country
+          )}`
+        );
 
-    // =========================
-    // AUTHENTICATION ERROR
-    // =========================
+        const result = await response.json();
 
-    if (response.status === 401) {
-      localStorage.removeItem(
+        if (
+          response.ok &&
+          result &&
+          Array.isArray(result.data)
+        ) {
+          setCities(
+            [...new Set(result.data)]
+              .filter(Boolean)
+              .sort((a, b) => a.localeCompare(b))
+          );
+        } else {
+          setCities([]);
+          setCityError(
+            "Cities could not be loaded for this country. You can type the city name manually."
+          );
+        }
+      } catch (error) {
+        console.error("City loading error:", error);
+
+        setCities([]);
+        setCityError(
+          "Unable to load cities right now. You can type the city name manually."
+        );
+      } finally {
+        setIsLoadingCities(false);
+      }
+    };
+
+    loadCities();
+  }, [formData.country]);
+
+  /* =========================================================
+     GENERAL INPUT
+  ========================================================= */
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === "country"
+        ? {
+            city: "",
+          }
+        : {}),
+    }));
+  };
+
+  /* =========================================================
+     SUBMIT FORM
+  ========================================================= */
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    setIsSubmitting(true);
+    setSubmitMessage("");
+    setSubmitError("");
+
+    try {
+      const accessToken = localStorage.getItem(
         "hireDeliverAccessToken"
       );
 
-      localStorage.removeItem(
-        "hireDeliverLoggedIn"
+      if (!accessToken) {
+        setSubmitError(
+          "Your login session has expired. Please login again."
+        );
+
+        setIsSubmitting(false);
+        return;
+      }
+
+      const data = new FormData();
+
+      /* ================= BASIC INFORMATION ================= */
+
+      data.append("country", formData.country);
+      data.append("title", formData.title);
+      data.append("type", formData.type);
+      data.append("category", formData.category);
+
+      /* ================= DELIVERY DETAILS ================= */
+
+      data.append("description", formData.description);
+      data.append("scope", formData.scope);
+      data.append("deliverables", formData.deliverables);
+
+      /* ================= COST ================= */
+
+      data.append("currency", formData.currency);
+      data.append("amount", formData.amount);
+      data.append("includedCost", formData.includedCost);
+      data.append("excludedCost", formData.excludedCost);
+
+      /* ================= PROCESSING ================= */
+
+      data.append("processing", formData.processing);
+      data.append(
+        "standardTimeline",
+        formData.standardTimeline
+      );
+      data.append(
+        "urgentTimeline",
+        formData.urgentTimeline
       );
 
-      localStorage.removeItem(
-        "hireDeliverUser"
+      /* ================= TEAM MEMBERS ================= */
+
+      const teamMembersForSubmit = formData.teamMembers.map(
+        (member) => ({
+          name: member.name,
+          role: member.role,
+          skills: member.skills,
+          experience: member.experience,
+
+          profile:
+            member.profile ||
+            (member.profileFiles || [])
+              .map((file) => file.name)
+              .join(", "),
+
+          similarExperience: member.similarExperience,
+        })
+      );
+
+      data.append(
+        "teamMembers",
+        JSON.stringify(teamMembersForSubmit)
+      );
+
+      /* ================= RESOURCES ================= */
+
+      data.append(
+        "availableResources",
+        formData.availableResources
+      );
+
+      data.append(
+        "requiredResources",
+        formData.requiredResources
+      );
+
+      data.append("tools", formData.tools);
+
+      data.append(
+        "physicalResources",
+        formData.physicalResources
+      );
+
+      data.append(
+        "additionalResources",
+        formData.additionalResources
+      );
+
+      /* ================= LOCATION ================= */
+
+      data.append("city", formData.city);
+
+      data.append(
+        "fullLocation",
+        formData.fullLocation
+      );
+
+      /* ================= PORTFOLIO ================= */
+
+      data.append("portfolio", formData.portfolio);
+
+      /* ================= SOCIAL MEDIA ================= */
+
+      data.append(
+        "socialMediaLink",
+        formData.socialMediaLink
+      );
+
+      /* ================= NOTIFICATION ================= */
+
+      data.append(
+        "notificationPeriod",
+        formData.notificationPeriod
+      );
+
+      data.append(
+        "notificationDetails",
+        formData.notificationDetails
+      );
+
+      /* ================= COMMUNICATION ================= */
+
+      data.append(
+        "communicationMethod",
+        formData.communicationMethod
+      );
+
+      data.append(
+        "communicationDetails",
+        formData.communicationDetails
+      );
+
+      /* ================= SUPPORTING FILES ================= */
+
+      formData.uploadedFiles.forEach((file) => {
+        data.append("uploadedFiles", file);
+      });
+
+      /* ================= TEAM PROFILE FILES ================= */
+
+      formData.teamMembers.forEach((member) => {
+        (member.profileFiles || []).forEach((file) => {
+          data.append("uploadedFiles", file);
+        });
+      });
+
+      /* ================= SEND REQUEST ================= */
+
+      const response = await fetch(
+        "http://127.0.0.1:5000/api/deliver/submit",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: data,
+        }
+      );
+
+      const result = await response.json();
+
+      /* ================= AUTH ERROR ================= */
+
+      if (response.status === 401) {
+        localStorage.removeItem(
+          "hireDeliverAccessToken"
+        );
+
+        localStorage.removeItem(
+          "hireDeliverLoggedIn"
+        );
+
+        localStorage.removeItem(
+          "hireDeliverUser"
+        );
+
+        setSubmitError(
+          "Your login session has expired. Please login again."
+        );
+
+        setIsSubmitting(false);
+        return;
+      }
+
+      /* ================= SERVER ERROR ================= */
+
+      if (!response.ok) {
+        throw new Error(
+          result.message ||
+            "Failed to submit delivery."
+        );
+      }
+
+      /* ================= SUCCESS ================= */
+
+      setSubmitMessage(
+        "Your delivery proposal has been submitted successfully. The form is now ready for a new submission."
+      );
+
+      /* ================= RESET ================= */
+
+      setFormData({
+        country: "Pakistan",
+
+        title: "",
+        type: "",
+        category: "",
+
+        description: "",
+        scope: "",
+        deliverables: "",
+
+        currency: "PKR - Pakistani Rupee",
+
+        amount: "",
+        includedCost: "",
+        excludedCost: "",
+
+        processing: "",
+        standardTimeline: "",
+        urgentTimeline: "",
+
+        teamMembers: [createTeamMember()],
+
+        availableResources: "",
+        requiredResources: "",
+
+        tools: "",
+        physicalResources: "",
+        additionalResources: "",
+
+        city: "",
+        fullLocation: "",
+
+        portfolio: "",
+        socialMediaLink: "",
+
+        uploadedFiles: [],
+
+        notificationPeriod: "",
+        notificationDetails: "",
+
+        communicationMethod: "",
+        communicationDetails: "",
+      });
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+
+      console.log("Deliver submission:", result);
+    } catch (error) {
+      console.error(
+        "Deliver submission error:",
+        error
       );
 
       setSubmitError(
-        "Your login session has expired. Please login again."
+        error.message ||
+          "Something went wrong while submitting."
       );
-
+    } finally {
       setIsSubmitting(false);
-
-      return;
     }
+  };
 
-    // =========================
-    // OTHER SERVER ERRORS
-    // =========================
+  /* =========================================================
+     FILE UPLOAD
+  ========================================================= */
 
-    if (!response.ok) {
-      throw new Error(
-        result.message ||
-        "Failed to submit delivery."
-      );
-    }
-
-    // =========================
-    // SUCCESS
-    // =========================
-
-    setSubmitMessage(
-      "Your delivery proposal has been submitted successfully. The form is now ready for a new submission."
-    );
-
-    // =========================
-    // RESET FORM
-    // =========================
-
-    setFormData({
-      country: "Pakistan",
-
-      title: "",
-      type: "",
-      category: "",
-
-      description: "",
-      scope: "",
-      deliverables: "",
-
-      currency: "PKR",
-      amount: "",
-
-      includedCost: "",
-      excludedCost: "",
-
-      processing: "",
-      standardTimeline: "",
-      urgentTimeline: "",
-
-      teamMembers: [
-        createTeamMember()
-      ],
-
-      availableResources: "",
-      requiredResources: "",
-
-      tools: "",
-      physicalResources: "",
-      additionalResources: "",
-
-      city: "",
-      fullLocation: "",
-
-      portfolio: "",
-
-      uploadedFiles: [],
-
-      notificationPeriod: "",
-      notificationDetails: "",
-
-      communicationMethod: "",
-      communicationDetails: "",
-    });
-
-    // =========================
-    // SCROLL TO TOP
-    // =========================
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-
-    console.log(
-      "Deliver submission:",
-      result
-    );
-
-  } catch (error) {
-
-    console.error(
-      "Deliver submission error:",
-      error
-    );
-
-    setSubmitError(
-      error.message ||
-      "Something went wrong while submitting."
-    );
-
-  } finally {
-
-    setIsSubmitting(false);
-
-  }
-};
-
-
-/* ================= FILE UPLOAD ================= */
-
-  // Files uploaded here belong to the complete delivery proposal.
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files || []);
 
     setFormData((prev) => ({
       ...prev,
-      uploadedFiles: [...prev.uploadedFiles, ...files],
+
+      uploadedFiles: [
+        ...prev.uploadedFiles,
+        ...files,
+      ],
     }));
 
     e.target.value = "";
@@ -561,23 +824,34 @@ const handleSubmit = async (e) => {
   const removeUploadedFile = (index) => {
     setFormData((prev) => ({
       ...prev,
+
       uploadedFiles: prev.uploadedFiles.filter(
         (_, fileIndex) => fileIndex !== index
       ),
     }));
   };
 
-  // Each team member has separate CV/profile files.
-  const handleTeamMemberFileUpload = (memberIndex, e) => {
+  /* =========================================================
+     TEAM MEMBER FILE UPLOAD
+  ========================================================= */
+
+  const handleTeamMemberFileUpload = (
+    memberIndex,
+    e
+  ) => {
     const files = Array.from(e.target.files || []);
 
     setFormData((prev) => {
-      const updatedMembers = [...prev.teamMembers];
+      const updatedMembers = [
+        ...prev.teamMembers,
+      ];
 
       updatedMembers[memberIndex] = {
         ...updatedMembers[memberIndex],
+
         profileFiles: [
-          ...(updatedMembers[memberIndex].profileFiles || []),
+          ...(updatedMembers[memberIndex]
+            .profileFiles || []),
           ...files,
         ],
       };
@@ -591,15 +865,24 @@ const handleSubmit = async (e) => {
     e.target.value = "";
   };
 
-  const removeTeamMemberFile = (memberIndex, fileIndex) => {
+  const removeTeamMemberFile = (
+    memberIndex,
+    fileIndex
+  ) => {
     setFormData((prev) => {
-      const updatedMembers = [...prev.teamMembers];
+      const updatedMembers = [
+        ...prev.teamMembers,
+      ];
 
       updatedMembers[memberIndex] = {
         ...updatedMembers[memberIndex],
+
         profileFiles: (
-          updatedMembers[memberIndex].profileFiles || []
-        ).filter((_, index) => index !== fileIndex),
+          updatedMembers[memberIndex]
+            .profileFiles || []
+        ).filter(
+          (_, index) => index !== fileIndex
+        ),
       };
 
       return {
@@ -609,11 +892,19 @@ const handleSubmit = async (e) => {
     });
   };
 
-  /* ================= TEAM MEMBERS ================= */
+  /* =========================================================
+     TEAM MEMBERS
+  ========================================================= */
 
-  const handleTeamMemberChange = (index, field, value) => {
+  const handleTeamMemberChange = (
+    index,
+    field,
+    value
+  ) => {
     setFormData((prev) => {
-      const updatedMembers = [...prev.teamMembers];
+      const updatedMembers = [
+        ...prev.teamMembers,
+      ];
 
       updatedMembers[index] = {
         ...updatedMembers[index],
@@ -630,6 +921,7 @@ const handleSubmit = async (e) => {
   const addTeamMember = () => {
     setFormData((prev) => ({
       ...prev,
+
       teamMembers: [
         ...prev.teamMembers,
         createTeamMember(),
@@ -638,61 +930,94 @@ const handleSubmit = async (e) => {
   };
 
   const removeTeamMember = (index) => {
-    if (formData.teamMembers.length === 1) return;
+    if (formData.teamMembers.length === 1) {
+      return;
+    }
 
     setFormData((prev) => ({
       ...prev,
+
       teamMembers: prev.teamMembers.filter(
-        (_, memberIndex) => memberIndex !== index
+        (_, memberIndex) =>
+          memberIndex !== index
       ),
     }));
   };
 
-  /* ================= COMPLETION ================= */
+  /* =========================================================
+     COMPLETION
+  ========================================================= */
 
   const fieldsForCompletion = {
     country: formData.country,
     title: formData.title,
     type: formData.type,
     category: formData.category,
+
     description: formData.description,
     scope: formData.scope,
     deliverables: formData.deliverables,
+
     currency: formData.currency,
     amount: formData.amount,
     includedCost: formData.includedCost,
+
     processing: formData.processing,
-    standardTimeline: formData.standardTimeline,
+    standardTimeline:
+      formData.standardTimeline,
+
     teamMembers: formData.teamMembers,
-    availableResources: formData.availableResources,
-    requiredResources: formData.requiredResources,
+
+    availableResources:
+      formData.availableResources,
+
+    requiredResources:
+      formData.requiredResources,
+
     city: formData.city,
     fullLocation: formData.fullLocation,
-    communicationMethod: formData.communicationMethod,
+
+    portfolio: formData.portfolio,
+    socialMediaLink:
+      formData.socialMediaLink,
+
+    communicationMethod:
+      formData.communicationMethod,
   };
 
   const isFilled = (value) => {
     if (Array.isArray(value)) {
       return value.some((item) => {
-        if (typeof item === "object" && item !== null) {
+        if (
+          typeof item === "object" &&
+          item !== null
+        ) {
           return Object.values(item).some(
             (itemValue) =>
-              String(itemValue || "").trim() !== ""
+              String(
+                itemValue || ""
+              ).trim() !== ""
           );
         }
 
-        return String(item || "").trim() !== "";
+        return String(
+          item || ""
+        ).trim() !== "";
       });
     }
 
-    return String(value || "").trim() !== "";
+    return String(
+      value || ""
+    ).trim() !== "";
   };
 
-  const filledFields = Object.values(fieldsForCompletion).filter(
-    isFilled
-  ).length;
+  const filledFields = Object.values(
+    fieldsForCompletion
+  ).filter(isFilled).length;
 
-  const totalFields = Object.keys(fieldsForCompletion).length;
+  const totalFields = Object.keys(
+    fieldsForCompletion
+  ).length;
 
   const completion = Math.round(
     (filledFields / totalFields) * 100
@@ -704,31 +1029,43 @@ const handleSubmit = async (e) => {
 
       <main className="deliver-page">
 
-        {/* ================= HEADER ================= */}
+        {/* =====================================================
+            HEADER
+        ===================================================== */}
 
         <section className="deliver-header">
 
           <div className="deliver-header-content">
 
             <div className="deliver-title-area">
+
               <span className="page-badge">
                 DELIVER
               </span>
 
               <h1>
-                Create Your <span>Delivery Profile</span>
+                Create Your{" "}
+                <span>
+                  Delivery Profile
+                </span>
               </h1>
 
               <p>
-                Tell potential clients what your team can deliver,
-                where you can deliver it, your available resources,
-                cost, timeline and team expertise.
+                Tell potential clients what
+                product, service, project,
+                task, expertise or solution
+                you can provide, including
+                your cost, timeline, team,
+                resources and delivery
+                location.
               </p>
+
             </div>
 
           </div>
 
           <div className="header-status">
+
             <Link
               to="/dashboard"
               className="form-dashboard-btn"
@@ -736,12 +1073,19 @@ const handleSubmit = async (e) => {
               <span>←</span>
               Dashboard
             </Link>
-            
+
             <span className="status-dot"></span>
+
             Delivery Proposal
+
           </div>
 
         </section>
+
+        {/* =====================================================
+            MESSAGES
+        ===================================================== */}
+
         {submitMessage && (
           <div className="submit-success">
             {submitMessage}
@@ -754,108 +1098,198 @@ const handleSubmit = async (e) => {
           </div>
         )}
 
-
-        {/* ================= WORKSPACE ================= */}
+        {/* =====================================================
+            WORKSPACE
+        ===================================================== */}
 
         <section className="deliver-workspace">
 
-          {/* ================= LEFT GUIDE ================= */}
+          {/* ===================================================
+              LEFT GUIDE
+          =================================================== */}
 
           <aside className="deliver-guide">
 
             <div className="side-heading">
+
               <span>01</span>
-              <h3>Delivery Guide</h3>
+
+              <h3>
+                Delivery Guide
+              </h3>
+
             </div>
 
             <p className="side-intro">
-              Complete the sections below to clearly explain
-              what you and your team can deliver.
+              Complete each section to
+              clearly explain what you,
+              your team or your organization
+              can provide to potential
+              clients.
             </p>
 
             <div className="guide-step active">
+
               <span>01</span>
+
               <div>
-                <strong>Basic Information</strong>
+                <strong>
+                  Basic Information
+                </strong>
+
                 <small>
-                  Country, type, title and category
+                  Country, title, type and
+                  category
                 </small>
               </div>
+
             </div>
 
             <div className="guide-step">
+
               <span>02</span>
+
               <div>
-                <strong>Delivery Details</strong>
+                <strong>
+                  Delivery Details
+                </strong>
+
                 <small>
-                  Description, scope and deliverables
+                  What you provide, scope and
+                  final outputs
                 </small>
               </div>
+
             </div>
 
             <div className="guide-step">
+
               <span>03</span>
+
               <div>
-                <strong>Cost & Processing</strong>
+                <strong>
+                  Cost & Processing
+                </strong>
+
                 <small>
-                  Cost, currency and timeline
+                  Price, currency and
+                  delivery timeline
                 </small>
               </div>
+
             </div>
 
             <div className="guide-step">
+
               <span>04</span>
+
               <div>
-                <strong>Team & Skills</strong>
+                <strong>
+                  Team & Skills
+                </strong>
+
                 <small>
-                  Members, roles and expertise
+                  People, roles, skills and
+                  experience
                 </small>
               </div>
+
             </div>
 
             <div className="guide-step">
+
               <span>05</span>
+
               <div>
-                <strong>Resources</strong>
+                <strong>
+                  Resources
+                </strong>
+
                 <small>
-                  Available and required resources
+                  Resources, equipment and
+                  tools
                 </small>
               </div>
+
             </div>
 
             <div className="guide-step">
+
               <span>06</span>
+
               <div>
-                <strong>Location & Proof</strong>
+                <strong>
+                  Location & Proof
+                </strong>
+
                 <small>
-                  Location and supporting documents
+                  Location, portfolio and
+                  supporting evidence
                 </small>
               </div>
+
+            </div>
+
+            <div className="guide-step">
+
+              <span>07</span>
+
+              <div>
+                <strong>
+                  Communication
+                </strong>
+
+                <small>
+                  Updates and contact
+                  preferences
+                </small>
+              </div>
+
             </div>
 
             <div className="guide-tip">
-              <strong>TIP</strong>
+
+              <strong>
+                TIP
+              </strong>
 
               <p>
-                Provide complete delivery information so clients
-                can understand your capability before contacting you.
+                Think of this form as your
+                delivery profile. Write enough
+                information that a client can
+                understand what you can
+                provide, what it costs, how
+                long it takes and what they
+                will receive.
               </p>
+
             </div>
 
           </aside>
 
-          {/* ================= CENTER FORM ================= */}
+          {/* ===================================================
+              CENTER FORM
+          =================================================== */}
 
           <div className="deliver-form-card">
 
             <div className="form-card-header">
 
               <div>
-                <span>DELIVERY PROPOSAL</span>
-                <h2>Delivery Information</h2>
+
+                <span>
+                  DELIVERY PROPOSAL
+                </span>
+
+                <h2>
+                  Delivery Information
+                </h2>
+
               </div>
 
-              <small>* Required</small>
+              <small>
+                * Required
+              </small>
 
             </div>
 
@@ -864,7 +1298,9 @@ const handleSubmit = async (e) => {
               onSubmit={handleSubmit}
             >
 
-              {/* ================= 01 BASIC INFORMATION ================= */}
+              {/* =================================================
+                  01 BASIC INFORMATION
+              ================================================= */}
 
               <div className="form-section-title">
                 <span>01</span>
@@ -877,55 +1313,43 @@ const handleSubmit = async (e) => {
                   Delivery Country *
                 </label>
 
-                <select
+                <input
+                  type="text"
                   name="country"
+                  list="deliver-country-list"
                   value={formData.country}
                   onChange={handleChange}
-                >
-                  <option value="Pakistan">
-                    Pakistan
-                  </option>
+                  placeholder="Search and select country..."
+                  autoComplete="off"
+                  required
+                />
 
-                  <option value="United Arab Emirates">
-                    United Arab Emirates
-                  </option>
-
-                  <option value="Saudi Arabia">
-                    Saudi Arabia
-                  </option>
-
-                  <option value="Qatar">
-                    Qatar
-                  </option>
-
-                  <option value="United Kingdom">
-                    United Kingdom
-                  </option>
-
-                  <option value="United States">
-                    United States
-                  </option>
-
-                  <option value="Canada">
-                    Canada
-                  </option>
-
-                  <option value="Australia">
-                    Australia
-                  </option>
-
-                  <option value="Germany">
-                    Germany
-                  </option>
-
-                  <option value="Other">
-                    Other
-                  </option>
-                </select>
+                <datalist id="deliver-country-list">
+                  {COUNTRIES.map(
+                    (country) => (
+                      <option
+                        key={country}
+                        value={country}
+                      />
+                    )
+                  )}
+                </datalist>
 
                 <small>
-                  Select the country where your delivery capability
-                  is available.
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  This tells clients where
+                  you are able or willing to
+                  provide the product, service,
+                  project or other delivery.
+                  <br />
+                  <strong>
+                    Enter:
+                  </strong>{" "}
+                  Search and select the
+                  country where the delivery
+                  will be available.
                 </small>
 
               </div>
@@ -940,7 +1364,9 @@ const handleSubmit = async (e) => {
                   name="type"
                   value={formData.type}
                   onChange={handleChange}
+                  required
                 >
+
                   <option value="">
                     Select delivery type
                   </option>
@@ -968,11 +1394,32 @@ const handleSubmit = async (e) => {
                   <option value="Other">
                     Other
                   </option>
+
                 </select>
 
                 <small>
-                  Select the product, service, task or project
-                  your team can deliver.
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Identifies the main nature
+                  of what you are offering.
+                  <br />
+                  <strong>
+                    Select:
+                  </strong>{" "}
+                  <strong>Product</strong> for
+                  a physical or digital item,
+                  <strong> Service</strong> for
+                  professional or operational
+                  work, <strong>Task</strong> for
+                  a specific assignment,
+                  <strong> Project</strong> for
+                  complete work with multiple
+                  stages, or
+                  <strong> Human Resource</strong>
+                  {" "}when you are providing a
+                  person or professional
+                  resource.
                 </small>
 
               </div>
@@ -988,8 +1435,33 @@ const handleSubmit = async (e) => {
                   name="title"
                   value={formData.title}
                   onChange={handleChange}
-                  placeholder="e.g. Complete E-commerce Website Development"
+                  placeholder="e.g. Event Management Service"
+                  required
                 />
+
+                <small>
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Gives your delivery a clear
+                  name that clients can quickly
+                  understand.
+                  <br />
+                  <strong>
+                    Enter:
+                  </strong>{" "}
+                  Write a short and specific
+                  title describing what you
+                  are offering.
+                  <br />
+                  <strong>
+                    Example:
+                  </strong>{" "}
+                  "Corporate Catering Service",
+                  "Custom Furniture Production",
+                  "Business Consulting Service",
+                  or "Photography Package".
+                </small>
 
               </div>
 
@@ -1003,7 +1475,9 @@ const handleSubmit = async (e) => {
                   name="category"
                   value={formData.category}
                   onChange={handleChange}
+                  required
                 >
+
                   <option value="">
                     Select a category
                   </option>
@@ -1043,11 +1517,33 @@ const handleSubmit = async (e) => {
                   <option value="Other">
                     Other
                   </option>
+
                 </select>
+
+                <small>
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Helps clients find and
+                  understand the general area
+                  of your delivery.
+                  <br />
+                  <strong>
+                    Select:
+                  </strong>{" "}
+                  Choose the category that is
+                  closest to your actual
+                  offering. Select
+                  <strong> Other</strong> if none
+                  of the available categories
+                  properly describes it.
+                </small>
 
               </div>
 
-              {/* ================= 02 DELIVERY DETAILS ================= */}
+              {/* =================================================
+                  02 DELIVERY DETAILS
+              ================================================= */}
 
               <div className="form-section-title">
                 <span>02</span>
@@ -1057,7 +1553,7 @@ const handleSubmit = async (e) => {
               <div className="form-group">
 
                 <label>
-                  What Can Your Team Provide? *
+                  What Can You Provide? *
                 </label>
 
                 <textarea
@@ -1065,11 +1561,35 @@ const handleSubmit = async (e) => {
                   value={formData.description}
                   onChange={handleChange}
                   rows="5"
-                  placeholder="Explain the product, service, task or project your team can provide..."
+                  placeholder="Explain clearly what product, service, project, task, solution or expertise you can provide..."
+                  required
                 />
 
                 <small>
-                  Clearly explain what you can deliver to the client.
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  This is the main explanation
+                  of your offering.
+                  <br />
+                  <strong>
+                    Enter:
+                  </strong>{" "}
+                  Explain what you provide,
+                  who it is suitable for, its
+                  main features or benefits,
+                  and what makes your offering
+                  useful.
+                  <br />
+                  <strong>
+                    Example:
+                  </strong>{" "}
+                  If you provide catering,
+                  explain the type of food,
+                  expected capacity and service.
+                  If you provide consulting,
+                  explain the area of expertise
+                  and type of guidance.
                 </small>
 
               </div>
@@ -1085,11 +1605,28 @@ const handleSubmit = async (e) => {
                   value={formData.scope}
                   onChange={handleChange}
                   rows="5"
-                  placeholder="Explain the complete scope of your delivery..."
+                  placeholder="Explain what work, responsibilities or activities are included from beginning to completion..."
+                  required
                 />
 
                 <small>
-                  Mention what is included in your delivery responsibility.
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Defines exactly how much work
+                  is covered by your delivery.
+                  <br />
+                  <strong>
+                    Enter:
+                  </strong>{" "}
+                  Explain what you will handle,
+                  what activities are included,
+                  the boundaries of your
+                  responsibility and where your
+                  responsibility ends.
+                  <br />
+                  This prevents confusion between
+                  you and the client later.
                 </small>
 
               </div>
@@ -1097,26 +1634,50 @@ const handleSubmit = async (e) => {
               <div className="form-group">
 
                 <label>
-                  Deliverables / Task Breakdown *
+                  Deliverables / Final Outputs *
                 </label>
 
                 <textarea
                   name="deliverables"
                   value={formData.deliverables}
                   onChange={handleChange}
-                  rows="5"
+                  rows="6"
                   placeholder={`Example:
-                  1. UI/UX Design
-                  2. Frontend Development
-                  3. Backend Development
-                  4. Database Integration
-                  5. Testing
-                  6. Deployment`}
+1. Initial consultation
+2. Planning / preparation
+3. Main work or production
+4. Quality checking
+5. Final output
+6. Handover / completion
+7. After-delivery support`}
+                  required
                 />
+
+                <small>
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Defines what the client will
+                  actually receive at the end
+                  of the work.
+                  <br />
+                  <strong>
+                    Enter:
+                  </strong>{" "}
+                  List the final products,
+                  services, reports, documents,
+                  milestones, results, items or
+                  other outputs you will provide.
+                  <br />
+                  You can write them as a
+                  numbered list.
+                </small>
 
               </div>
 
-              {/* ================= 03 COST & PROCESSING ================= */}
+              {/* =================================================
+                  03 COST & PROCESSING
+              ================================================= */}
 
               <div className="form-section-title">
                 <span>03</span>
@@ -1129,6 +1690,19 @@ const handleSubmit = async (e) => {
                   Delivery Cost *
                 </label>
 
+                <small>
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Tells the client how much the
+                  complete delivery is expected
+                  to cost.
+                  <br />
+                  Enter the currency first and
+                  then enter the numerical amount
+                  for the delivery.
+                </small>
+
                 <div className="form-row">
 
                   <div className="form-group">
@@ -1137,20 +1711,43 @@ const handleSubmit = async (e) => {
                       Currency *
                     </label>
 
-                    <select
+                    <input
+                      type="text"
                       name="currency"
+                      list="deliver-currency-list"
                       value={formData.currency}
                       onChange={handleChange}
-                    >
-                      {CURRENCIES.map((currency) => (
-                        <option
-                          key={currency}
-                          value={currency}
-                        >
-                          {currency}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="Search currency..."
+                      autoComplete="off"
+                      required
+                    />
+
+                    <datalist id="deliver-currency-list">
+                      {CURRENCIES.map(
+                        (currency) => (
+                          <option
+                            key={currency}
+                            value={currency}
+                          />
+                        )
+                      )}
+                    </datalist>
+
+                    <small>
+                      <strong>
+                        Enter:
+                      </strong>{" "}
+                      Search and select the
+                      currency in which your
+                      delivery cost is quoted.
+                      <br />
+                      <strong>
+                        Example:
+                      </strong>{" "}
+                      PKR, USD, EUR, GBP, AED,
+                      SAR or another applicable
+                      currency.
+                    </small>
 
                   </div>
 
@@ -1167,15 +1764,29 @@ const handleSubmit = async (e) => {
                       onChange={handleChange}
                       min="0"
                       placeholder="e.g. 300000"
+                      required
                     />
+
+                    <small>
+                      <strong>
+                        Enter:
+                      </strong>{" "}
+                      Enter only the numerical
+                      amount of the delivery cost.
+                      <br />
+                      <strong>
+                        Example:
+                      </strong>{" "}
+                      If the total cost is
+                      PKR 300,000, enter
+                      <strong> 300000</strong>.
+                      The currency is selected
+                      separately above.
+                    </small>
 
                   </div>
 
                 </div>
-
-                <small>
-                  Enter the total amount you expect for the complete delivery.
-                </small>
 
               </div>
 
@@ -1190,8 +1801,34 @@ const handleSubmit = async (e) => {
                   value={formData.includedCost}
                   onChange={handleChange}
                   rows="4"
-                  placeholder="Mention the services, deliverables and resources included in this cost..."
+                  placeholder="Explain everything covered by the quoted amount..."
+                  required
                 />
+
+                <small>
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Makes the price transparent
+                  to the client.
+                  <br />
+                  <strong>
+                    Enter:
+                  </strong>{" "}
+                  Mention all work, materials,
+                  services, transportation,
+                  preparation, support,
+                  equipment, resources or
+                  other items already included
+                  in your quoted price.
+                  <br />
+                  <strong>
+                    Example:
+                  </strong>{" "}
+                  "Planning, materials, delivery,
+                  installation and one follow-up
+                  visit are included."
+                </small>
 
               </div>
 
@@ -1206,8 +1843,31 @@ const handleSubmit = async (e) => {
                   value={formData.excludedCost}
                   onChange={handleChange}
                   rows="4"
-                  placeholder="Mention any additional services, resources or expenses not included..."
+                  placeholder="Mention any work, materials, charges or services that are outside the quoted price..."
                 />
+
+                <small>
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Clearly identifies possible
+                  extra charges.
+                  <br />
+                  <strong>
+                    Enter:
+                  </strong>{" "}
+                  Mention anything that the
+                  client may need to pay
+                  separately.
+                  <br />
+                  <strong>
+                    Example:
+                  </strong>{" "}
+                  "Government fees, special
+                  materials, additional travel
+                  or extra work requested after
+                  approval are not included."
+                </small>
 
               </div>
 
@@ -1221,7 +1881,9 @@ const handleSubmit = async (e) => {
                   name="processing"
                   value={formData.processing}
                   onChange={handleChange}
+                  required
                 >
+
                   <option value="">
                     Select processing type
                   </option>
@@ -1233,14 +1895,27 @@ const handleSubmit = async (e) => {
                   <option value="Urgent Processing">
                     Urgent Processing
                   </option>
+
                 </select>
 
                 <small>
-                  <strong>Important:</strong> Urgent Processing means
-                  the delivery will require faster execution and may
-                  involve additional effort, resources or priority
-                  handling. The final processing terms can be discussed
-                  with the client before confirmation.
+                  <strong>
+                    Normal Processing:
+                  </strong>{" "}
+                  The delivery will be completed
+                  according to your normal
+                  working schedule.
+                  <br />
+                  <strong>
+                    Urgent Processing:
+                  </strong>{" "}
+                  The delivery can be given
+                  priority and completed faster
+                  if the required resources and
+                  conditions are available.
+                  <br />
+                  Select the option that you
+                  can realistically provide.
                 </small>
 
               </div>
@@ -1256,10 +1931,28 @@ const handleSubmit = async (e) => {
                   <input
                     type="text"
                     name="standardTimeline"
-                    value={formData.standardTimeline}
+                    value={
+                      formData.standardTimeline
+                    }
                     onChange={handleChange}
-                    placeholder="e.g. 30 days"
+                    placeholder="e.g. 15 days, 2 weeks, 3 months"
+                    required
                   />
+
+                  <small>
+                    <strong>
+                      Purpose:
+                    </strong>{" "}
+                    Tells the client the normal
+                    amount of time required.
+                    <br />
+                    <strong>
+                      Enter:
+                    </strong>{" "}
+                    Write a realistic duration
+                    such as "7 days", "3 weeks",
+                    "2 months" or "6 months".
+                  </small>
 
                 </div>
 
@@ -1272,16 +1965,32 @@ const handleSubmit = async (e) => {
                   <input
                     type="text"
                     name="urgentTimeline"
-                    value={formData.urgentTimeline}
+                    value={
+                      formData.urgentTimeline
+                    }
                     onChange={handleChange}
-                    placeholder="e.g. 15 days"
+                    placeholder="e.g. 5 days, 1 week"
                   />
+
+                  <small>
+                    <strong>
+                      Purpose:
+                    </strong>{" "}
+                    Shows the fastest realistic
+                    timeline if priority delivery
+                    is possible.
+                    <br />
+                    Leave empty if urgent
+                    delivery is not available.
+                  </small>
 
                 </div>
 
               </div>
 
-              {/* ================= 04 TEAM & SKILLS ================= */}
+              {/* =================================================
+                  04 TEAM & SKILLS
+              ================================================= */}
 
               <div className="form-section-title">
                 <span>04</span>
@@ -1295,140 +2004,215 @@ const handleSubmit = async (e) => {
                 </label>
 
                 <small>
-                  Add every person who will contribute to the delivery.
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Shows the people responsible
+                  for completing the delivery.
+                  <br />
+                  <strong>
+                    Enter:
+                  </strong>{" "}
+                  Add every important person
+                  who will contribute to the
+                  delivery. Include their name,
+                  responsibility, skills and
+                  relevant experience.
+                  <br />
+                  If the delivery is completed
+                  by one person, keep one team
+                  member and enter that person's
+                  information.
                 </small>
 
               </div>
 
               <div className="team-members-wrapper">
 
-                {formData.teamMembers.map((member, index) => (
+                {formData.teamMembers.map(
+                  (member, index) => (
 
-                  <div
-                    className="team-member-card"
-                    key={index}
-                  >
+                    <div
+                      className="team-member-card"
+                      key={index}
+                    >
 
-                    <div className="team-member-header">
+                      <div className="team-member-header">
 
-                      <div>
-                        <span className="team-member-number">
-                          {String(index + 1).padStart(2, "0")}
-                        </span>
+                        <div>
 
-                        <strong>
-                          Team Member {index + 1}
-                        </strong>
-                      </div>
+                          <span className="team-member-number">
+                            {String(
+                              index + 1
+                            ).padStart(2, "0")}
+                          </span>
 
-                      {formData.teamMembers.length > 1 && (
-                        <button
-                          type="button"
-                          className="remove-team-btn"
-                          onClick={() =>
-                            removeTeamMember(index)
-                          }
-                        >
-                          Remove
-                        </button>
-                      )}
+                          <strong>
+                            Team Member{" "}
+                            {index + 1}
+                          </strong>
 
-                    </div>
+                        </div>
 
-                    <div className="form-row">
-
-                      <div className="form-group">
-
-                        <label>
-                          Member Name *
-                        </label>
-
-                        <input
-                          type="text"
-                          value={member.name}
-                          onChange={(e) =>
-                            handleTeamMemberChange(
-                              index,
-                              "name",
-                              e.target.value
-                            )
-                          }
-                          placeholder="e.g. Abdul Raziq"
-                        />
+                        {formData.teamMembers
+                          .length > 1 && (
+                          <button
+                            type="button"
+                            className="remove-team-btn"
+                            onClick={() =>
+                              removeTeamMember(
+                                index
+                              )
+                            }
+                          >
+                            Remove
+                          </button>
+                        )}
 
                       </div>
 
-                      <div className="form-group">
+                      <div className="form-row">
 
-                        <label>
-                          Role *
-                        </label>
+                        <div className="form-group">
 
-                        <input
-                          type="text"
-                          value={member.role}
-                          onChange={(e) =>
-                            handleTeamMemberChange(
-                              index,
-                              "role",
-                              e.target.value
-                            )
-                          }
-                          placeholder="e.g. Frontend Developer"
-                        />
+                          <label>
+                            Member Name *
+                          </label>
+
+                          <input
+                            type="text"
+                            value={member.name}
+                            onChange={(e) =>
+                              handleTeamMemberChange(
+                                index,
+                                "name",
+                                e.target.value
+                              )
+                            }
+                            placeholder="e.g. Full Name"
+                            required
+                          />
+
+                          <small>
+                            <strong>
+                              Enter:
+                            </strong>{" "}
+                            Full name of the person
+                            who will participate in
+                            delivering the product,
+                            service, project or task.
+                          </small>
+
+                        </div>
+
+                        <div className="form-group">
+
+                          <label>
+                            Role / Responsibility *
+                          </label>
+
+                          <input
+                            type="text"
+                            value={member.role}
+                            onChange={(e) =>
+                              handleTeamMemberChange(
+                                index,
+                                "role",
+                                e.target.value
+                              )
+                            }
+                            placeholder="e.g. Project Manager, Trainer, Technician"
+                            required
+                          />
+
+                          <small>
+                            <strong>
+                              Enter:
+                            </strong>{" "}
+                            Explain what this person
+                            will actually do.
+                            <br />
+                            Examples include
+                            project manager, trainer,
+                            consultant, technician,
+                            designer, supervisor,
+                            operator, researcher,
+                            salesperson or specialist.
+                          </small>
+
+                        </div>
 
                       </div>
 
-                    </div>
+                      <div className="form-row">
 
-                    <div className="form-row">
+                        <div className="form-group">
 
-                      <div className="form-group">
+                          <label>
+                            Skills / Expertise
+                          </label>
 
-                        <label>
-                          Skills / Expertise
-                        </label>
+                          <input
+                            type="text"
+                            value={member.skills}
+                            onChange={(e) =>
+                              handleTeamMemberChange(
+                                index,
+                                "skills",
+                                e.target.value
+                              )
+                            }
+                            placeholder="e.g. Customer Service, Accounting, Carpentry"
+                          />
 
-                        <input
-                          type="text"
-                          value={member.skills}
-                          onChange={(e) =>
-                            handleTeamMemberChange(
-                              index,
-                              "skills",
-                              e.target.value
-                            )
-                          }
-                          placeholder="e.g. React, Python, Flask"
-                        />
+                          <small>
+                            <strong>
+                              Enter:
+                            </strong>{" "}
+                            List the important skills,
+                            qualifications, techniques,
+                            professional abilities or
+                            areas of expertise relevant
+                            to this delivery.
+                          </small>
+
+                        </div>
+
+                        <div className="form-group">
+
+                          <label>
+                            Years of Experience
+                          </label>
+
+                          <input
+                            type="number"
+                            min="0"
+                            value={
+                              member.experience
+                            }
+                            onChange={(e) =>
+                              handleTeamMemberChange(
+                                index,
+                                "experience",
+                                e.target.value
+                              )
+                            }
+                            placeholder="e.g. 5"
+                          />
+
+                          <small>
+                            <strong>
+                              Enter:
+                            </strong>{" "}
+                            Approximate number of
+                            years of relevant
+                            professional or practical
+                            experience.
+                          </small>
+
+                        </div>
 
                       </div>
-
-                      <div className="form-group">
-
-                        <label>
-                          Years of Experience
-                        </label>
-
-                        <input
-                          type="number"
-                          min="0"
-                          value={member.experience}
-                          onChange={(e) =>
-                            handleTeamMemberChange(
-                              index,
-                              "experience",
-                              e.target.value
-                            )
-                          }
-                          placeholder="e.g. 3"
-                        />
-
-                      </div>
-
-                    </div>
-
-                      {/* ================= TEAM MEMBER PROFILE ================= */}
 
                       <div className="form-group">
 
@@ -1437,8 +2221,31 @@ const handleSubmit = async (e) => {
                         </label>
 
                         <small>
-                          Upload this member's CV, profile, certificates
-                          or previous-work documents.
+                          <strong>
+                            Purpose:
+                          </strong>{" "}
+                          Provides evidence about this
+                          person's qualifications,
+                          skills and professional
+                          background.
+                          <br />
+                          <strong>
+                            Upload:
+                          </strong>{" "}
+                          This member's CV/resume,
+                          professional profile,
+                          qualification certificate,
+                          training certificate,
+                          license, experience
+                          document or relevant work
+                          evidence.
+                          <br />
+                          <strong>
+                            Important:
+                          </strong>{" "}
+                          Upload documents belonging
+                          to this specific team member,
+                          not general company documents.
                         </small>
 
                         <div className="file-upload-box">
@@ -1449,7 +2256,10 @@ const handleSubmit = async (e) => {
                             multiple
                             accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.zip"
                             onChange={(e) =>
-                              handleTeamMemberFileUpload(index, e)
+                              handleTeamMemberFileUpload(
+                                index,
+                                e
+                              )
                             }
                           />
 
@@ -1457,22 +2267,29 @@ const handleSubmit = async (e) => {
                             htmlFor={`team-member-files-${index}`}
                             className="file-upload-label"
                           >
+
                             <span className="upload-icon">
                               ↑
                             </span>
 
                             <strong>
-                              Upload This Member's CV / Profile
+                              Upload Member Documents
                             </strong>
 
                             <small>
-                              PDF, Word, Excel, PowerPoint, Images or ZIP
+                              CV, certificates,
+                              qualifications,
+                              licenses or relevant
+                              evidence
                             </small>
+
                           </label>
 
                         </div>
 
-                        {(member.profileFiles || []).length > 0 && (
+                        {(
+                          member.profileFiles || []
+                        ).length > 0 && (
 
                           <div className="uploaded-files-list">
 
@@ -1485,6 +2302,7 @@ const handleSubmit = async (e) => {
                                 >
 
                                   <div>
+
                                     <strong>
                                       {file.name}
                                     </strong>
@@ -1497,6 +2315,7 @@ const handleSubmit = async (e) => {
                                       ).toFixed(2)}{" "}
                                       MB
                                     </small>
+
                                   </div>
 
                                   <button
@@ -1522,30 +2341,49 @@ const handleSubmit = async (e) => {
 
                       </div>
 
-                    <div className="form-group">
+                      <div className="form-group">
 
-                      <label>
-                        Similar Experience
-                      </label>
+                        <label>
+                          Similar Experience
+                        </label>
 
-                      <input
-                        type="text"
-                        value={member.similarExperience}
-                        onChange={(e) =>
-                          handleTeamMemberChange(
-                            index,
-                            "similarExperience",
-                            e.target.value
-                          )
-                        }
-                        placeholder="e.g. 5 similar projects"
-                      />
+                        <input
+                          type="text"
+                          value={
+                            member.similarExperience
+                          }
+                          onChange={(e) =>
+                            handleTeamMemberChange(
+                              index,
+                              "similarExperience",
+                              e.target.value
+                            )
+                          }
+                          placeholder="e.g. Completed similar assignments for 5 clients"
+                        />
+
+                        <small>
+                          <strong>
+                            Enter:
+                          </strong>{" "}
+                          Mention previous work
+                          similar to this delivery.
+                          You can mention the type
+                          of work, number of previous
+                          assignments, industries,
+                          clients or relevant
+                          experience.
+                          <br />
+                          Do not share confidential
+                          client information.
+                        </small>
+
+                      </div>
 
                     </div>
 
-                  </div>
-
-                ))}
+                  )
+                )}
 
                 <button
                   type="button"
@@ -1558,9 +2396,9 @@ const handleSubmit = async (e) => {
 
               </div>
 
-              
-
-              {/* ================= 05 RESOURCES ================= */}
+              {/* =================================================
+                  05 RESOURCES
+              ================================================= */}
 
               <div className="form-section-title">
                 <span>05</span>
@@ -1575,11 +2413,39 @@ const handleSubmit = async (e) => {
 
                 <textarea
                   name="availableResources"
-                  value={formData.availableResources}
+                  value={
+                    formData.availableResources
+                  }
                   onChange={handleChange}
                   rows="4"
-                  placeholder="Mention the resources currently available to your team..."
+                  placeholder="List the people, materials, facilities, equipment or other resources you already have available..."
+                  required
                 />
+
+                <small>
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Shows what you already have
+                  available to complete the
+                  delivery.
+                  <br />
+                  <strong>
+                    Enter:
+                  </strong>{" "}
+                  Mention available staff,
+                  materials, facilities,
+                  equipment, transportation,
+                  workspace, machinery, expertise
+                  or other useful resources.
+                  <br />
+                  <strong>
+                    Example:
+                  </strong>{" "}
+                  "Two trained staff, required
+                  equipment, workspace and
+                  transportation facility."
+                </small>
 
               </div>
 
@@ -1591,11 +2457,34 @@ const handleSubmit = async (e) => {
 
                 <textarea
                   name="requiredResources"
-                  value={formData.requiredResources}
+                  value={
+                    formData.requiredResources
+                  }
                   onChange={handleChange}
                   rows="4"
-                  placeholder="Mention any additional resources required to complete the delivery..."
+                  placeholder="List anything you need from the client or another source before or during delivery..."
                 />
+
+                <small>
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Tells the client what is needed
+                  from their side or from an
+                  external source.
+                  <br />
+                  <strong>
+                    Enter:
+                  </strong>{" "}
+                  Mention information,
+                  materials, access, permissions,
+                  special equipment, approvals,
+                  facilities, staff support or
+                  other requirements.
+                  <br />
+                  If nothing is required, write
+                  <strong> "Not Required"</strong>.
+                </small>
 
               </div>
 
@@ -1610,8 +2499,28 @@ const handleSubmit = async (e) => {
                   value={formData.tools}
                   onChange={handleChange}
                   rows="4"
-                  placeholder="List software, platforms, tools or systems available to your team..."
+                  placeholder="List the tools, software, platforms, machinery or systems used to provide your delivery..."
                 />
+
+                <small>
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Shows which tools or systems
+                  support your delivery.
+                  <br />
+                  <strong>
+                    Enter:
+                  </strong>{" "}
+                  Add relevant software,
+                  platforms, applications,
+                  machinery, equipment systems,
+                  instruments or other tools.
+                  <br />
+                  This field is not limited to
+                  technology. Add any tool that
+                  is relevant to your work.
+                </small>
 
               </div>
 
@@ -1623,11 +2532,35 @@ const handleSubmit = async (e) => {
 
                 <textarea
                   name="physicalResources"
-                  value={formData.physicalResources}
+                  value={
+                    formData.physicalResources
+                  }
                   onChange={handleChange}
                   rows="4"
-                  placeholder="Mention available equipment, machines, hardware or other physical resources..."
+                  placeholder="List physical equipment, machinery, vehicles, instruments, facilities or devices available for the delivery..."
                 />
+
+                <small>
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Identifies physical resources
+                  that support your ability to
+                  complete the delivery.
+                  <br />
+                  <strong>
+                    Enter:
+                  </strong>{" "}
+                  Mention machines, vehicles,
+                  instruments, production
+                  equipment, testing equipment,
+                  office facilities, workshop
+                  facilities or other physical
+                  resources.
+                  <br />
+                  If none are needed, write
+                  <strong> "Not Required"</strong>.
+                </small>
 
               </div>
 
@@ -1639,15 +2572,38 @@ const handleSubmit = async (e) => {
 
                 <textarea
                   name="additionalResources"
-                  value={formData.additionalResources}
+                  value={
+                    formData.additionalResources
+                  }
                   onChange={handleChange}
                   rows="4"
-                  placeholder="Mention any other resources related to your delivery..."
+                  placeholder="Mention any other resource, partnership, facility, supplier, network or support that strengthens your delivery capability..."
                 />
+
+                <small>
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Captures useful resources that
+                  do not fit into the previous
+                  fields.
+                  <br />
+                  <strong>
+                    Enter:
+                  </strong>{" "}
+                  You can mention partners,
+                  suppliers, external specialists,
+                  business networks, special
+                  facilities, logistics support,
+                  distribution channels or other
+                  relevant support.
+                </small>
 
               </div>
 
-              {/* ================= 06 LOCATION & PROOF ================= */}
+              {/* =================================================
+                  06 LOCATION & PROOF
+              ================================================= */}
 
               <div className="form-section-title">
                 <span>06</span>
@@ -1660,30 +2616,59 @@ const handleSubmit = async (e) => {
                   Delivery City *
                 </label>
 
-                <select
+                <input
+                  type="text"
                   name="city"
+                  list="deliver-city-list"
                   value={formData.city}
                   onChange={handleChange}
-                >
+                  placeholder={
+                    isLoadingCities
+                      ? "Loading cities..."
+                      : "Search or type city..."
+                  }
+                  autoComplete="off"
+                  disabled={!formData.country}
+                  required
+                />
 
-                  <option value="">
-                    Select delivery city
-                  </option>
-
-                  {PAKISTAN_CITIES.map((city) => (
+                <datalist id="deliver-city-list">
+                  {cities.map((city) => (
                     <option
                       key={city}
                       value={city}
-                    >
-                      {city}
-                    </option>
+                    />
                   ))}
-
-                </select>
+                </datalist>
 
                 <small>
-                  Select the main city where you can provide the delivery.
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Identifies the city where you
+                  can provide or manage the
+                  delivery.
+                  <br />
+                  <strong>
+                    Enter:
+                  </strong>{" "}
+                  Search the city from the
+                  suggestions or type it
+                  manually if it is not listed.
                 </small>
+
+                {isLoadingCities && (
+                  <small>
+                    Loading cities for{" "}
+                    {formData.country}...
+                  </small>
+                )}
+
+                {cityError && (
+                  <small>
+                    {cityError}
+                  </small>
+                )}
 
               </div>
 
@@ -1698,10 +2683,34 @@ const handleSubmit = async (e) => {
                   value={formData.fullLocation}
                   onChange={handleChange}
                   rows="4"
-                  placeholder="Enter complete address, area, office location or other delivery details..."
+                  placeholder="Enter business address, service area, facility location or other relevant delivery location..."
                 />
 
+                <small>
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Provides additional location
+                  details when the city alone is
+                  not enough.
+                  <br />
+                  <strong>
+                    Enter:
+                  </strong>{" "}
+                  Add office address, shop
+                  address, workshop, facility,
+                  service area, delivery zone or
+                  other relevant location.
+                  <br />
+                  Do not share unnecessary
+                  personal or private information.
+                </small>
+
               </div>
+
+              {/* =================================================
+                  PORTFOLIO
+              ================================================= */}
 
               <div className="form-group">
 
@@ -1714,16 +2723,107 @@ const handleSubmit = async (e) => {
                   name="portfolio"
                   value={formData.portfolio}
                   onChange={handleChange}
-                  placeholder="https://yourwebsite.com"
+                  placeholder="https://yourwebsite.com or https://drive.google.com/..."
                 />
 
                 <small>
-                  Add a portfolio, website, product demo or relevant work link.
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Gives clients evidence of
+                  your previous work and
+                  capability.
+                  <br />
+                  <strong>
+                    Add:
+                  </strong>{" "}
+                  Your portfolio website,
+                  business website, previous
+                  work page, product demo,
+                  project page, GitHub,
+                  Behance, design portfolio or
+                  Google Drive folder/file.
+                </small>
+
+                <small>
+                  <strong>
+                    Google Drive link banane ka
+                    tareeqa:
+                  </strong>{" "}
+                  Apni portfolio file ya folder
+                  Google Drive mein upload karein
+                  → <strong>Share</strong> par
+                  click karein → General Access
+                  mein{" "}
+                  <strong>
+                    Anyone with the link
+                  </strong>{" "}
+                  select karein → Viewer access
+                  rakhein →{" "}
+                  <strong>
+                    Copy link
+                  </strong>{" "}
+                  karein → phir yahan paste
+                  karein.
+                  <br />
+                  <strong>
+                    Important:
+                  </strong>{" "}
+                  Link submit karne se pehle
+                  khud test karein ke doosra
+                  person us link ko open kar
+                  sakta hai.
                 </small>
 
               </div>
 
-              {/* ================= DELIVERY SUPPORTING DOCUMENTS ================= */}
+              {/* =================================================
+                  SOCIAL MEDIA
+              ================================================= */}
+
+              <div className="form-group">
+
+                <label>
+                  Professional / Social Media Profile Link
+                </label>
+
+                <input
+                  type="url"
+                  name="socialMediaLink"
+                  value={
+                    formData.socialMediaLink
+                  }
+                  onChange={handleChange}
+                  placeholder="https://linkedin.com/in/yourprofile"
+                />
+
+                <small>
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Gives clients another way to
+                  verify your professional
+                  presence and experience.
+                  <br />
+                  <strong>
+                    Add:
+                  </strong>{" "}
+                  LinkedIn, GitHub, Behance,
+                  Dribbble, Instagram, Facebook,
+                  YouTube, professional profile,
+                  business page or another
+                  relevant public profile.
+                  <br />
+                  Use a profile that is related
+                  to the delivery you are
+                  offering.
+                </small>
+
+              </div>
+
+              {/* =================================================
+                  SUPPORTING DOCUMENTS
+              ================================================= */}
 
               <div className="form-group">
 
@@ -1732,9 +2832,54 @@ const handleSubmit = async (e) => {
                 </label>
 
                 <small>
-                  Upload documents related to the complete delivery proposal,
-                  such as project samples, company profiles, certificates,
-                  previous work or other supporting documents.
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Upload documents that provide
+                  evidence, details or additional
+                  information about your delivery
+                  proposal.
+                  <br />
+                  <strong>
+                    Upload here:
+                  </strong>
+                  <br />
+                  • Previous work samples
+                  <br />
+                  • Product brochures
+                  <br />
+                  • Service profile
+                  <br />
+                  • Company profile
+                  <br />
+                  • Case studies
+                  <br />
+                  • Certificates
+                  <br />
+                  • Licenses or registrations
+                  <br />
+                  • Technical documents
+                  <br />
+                  • Product specifications
+                  <br />
+                  • Price/catalog documents
+                  <br />
+                  • Presentations
+                  <br />
+                  • Images or screenshots
+                  <br />
+                  • Previous work evidence
+                  <br />
+                  • Other relevant supporting
+                  documents
+                  <br />
+                  <strong>
+                    Do not upload:
+                  </strong>{" "}
+                  Passwords, confidential
+                  information, private documents
+                  or files that you do not have
+                  permission to share.
                 </small>
 
                 <div className="file-upload-box">
@@ -1751,6 +2896,7 @@ const handleSubmit = async (e) => {
                     htmlFor="delivery-supporting-files"
                     className="file-upload-label"
                   >
+
                     <span className="upload-icon">
                       ↑
                     </span>
@@ -1760,13 +2906,18 @@ const handleSubmit = async (e) => {
                     </strong>
 
                     <small>
-                      PDF, Word, Excel, PowerPoint, Images or ZIP
+                      Upload relevant proof,
+                      samples, certificates,
+                      brochures, reports,
+                      presentations or images
                     </small>
+
                   </label>
 
                 </div>
 
-                {formData.uploadedFiles.length > 0 && (
+                {formData.uploadedFiles.length >
+                  0 && (
 
                   <div className="uploaded-files-list">
 
@@ -1779,6 +2930,7 @@ const handleSubmit = async (e) => {
                         >
 
                           <div>
+
                             <strong>
                               {file.name}
                             </strong>
@@ -1791,12 +2943,15 @@ const handleSubmit = async (e) => {
                               ).toFixed(2)}{" "}
                               MB
                             </small>
+
                           </div>
 
                           <button
                             type="button"
                             onClick={() =>
-                              removeUploadedFile(index)
+                              removeUploadedFile(
+                                index
+                              )
                             }
                           >
                             Remove
@@ -1813,7 +2968,9 @@ const handleSubmit = async (e) => {
 
               </div>
 
-              {/* ================= 07 NOTIFICATION ================= */}
+              {/* =================================================
+                  07 NOTIFICATION & COMMUNICATION
+              ================================================= */}
 
               <div className="form-section-title">
                 <span>07</span>
@@ -1828,7 +2985,9 @@ const handleSubmit = async (e) => {
 
                 <select
                   name="notificationPeriod"
-                  value={formData.notificationPeriod}
+                  value={
+                    formData.notificationPeriod
+                  }
                   onChange={handleChange}
                 >
 
@@ -1854,6 +3013,21 @@ const handleSubmit = async (e) => {
 
                 </select>
 
+                <small>
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Defines how frequently progress
+                  or delivery updates should be
+                  communicated.
+                  <br />
+                  <strong>
+                    Select:
+                  </strong>{" "}
+                  Choose the frequency that you
+                  can realistically maintain.
+                </small>
+
               </div>
 
               <div className="form-group">
@@ -1864,11 +3038,28 @@ const handleSubmit = async (e) => {
 
                 <textarea
                   name="notificationDetails"
-                  value={formData.notificationDetails}
+                  value={
+                    formData.notificationDetails
+                  }
                   onChange={handleChange}
                   rows="4"
-                  placeholder="Add any additional information about progress updates or delivery notifications..."
+                  placeholder="Mention any special requirement for progress updates, reports, milestones or delivery notifications..."
                 />
+
+                <small>
+                  <strong>
+                    Enter:
+                  </strong>{" "}
+                  Mention any special update
+                  requirements, milestone reports,
+                  progress summaries, completion
+                  notices or other notification
+                  preferences.
+                  <br />
+                  If there are no special
+                  requirements, you can leave
+                  this field empty.
+                </small>
 
               </div>
 
@@ -1880,8 +3071,11 @@ const handleSubmit = async (e) => {
 
                 <select
                   name="communicationMethod"
-                  value={formData.communicationMethod}
+                  value={
+                    formData.communicationMethod
+                  }
                   onChange={handleChange}
+                  required
                 >
 
                   <option value="">
@@ -1915,8 +3109,16 @@ const handleSubmit = async (e) => {
                 </select>
 
                 <small>
-                  Select how potential clients should contact you
-                  regarding your delivery proposal.
+                  <strong>
+                    Purpose:
+                  </strong>{" "}
+                  Tells potential clients how
+                  they should contact you about
+                  this delivery.
+                  <br />
+                  Select the method through which
+                  you are comfortable receiving
+                  delivery-related communication.
                 </small>
 
               </div>
@@ -1930,19 +3132,37 @@ const handleSubmit = async (e) => {
                 <input
                   type="text"
                   name="communicationDetails"
-                  value={formData.communicationDetails}
+                  value={
+                    formData.communicationDetails
+                  }
                   onChange={handleChange}
-                  placeholder="e.g. +92 300 1234567 or your@email.com"
+                  placeholder="e.g. email address, phone number or WhatsApp contact"
                 />
 
                 <small>
-                  Provide the phone number, email address or other
-                  contact detail associated with your selected method.
+                  <strong>
+                    Enter:
+                  </strong>{" "}
+                  Provide the contact detail
+                  associated with your selected
+                  communication method.
+                  <br />
+                  <strong>
+                    Example:
+                  </strong>{" "}
+                  Email address, phone number,
+                  WhatsApp number or another
+                  appropriate contact detail.
+                  <br />
+                  Make sure the information is
+                  correct before publishing.
                 </small>
 
               </div>
 
-              {/* ================= ACTIONS ================= */}
+              {/* =================================================
+                  ACTIONS
+              ================================================= */}
 
               <div className="form-actions">
 
@@ -1957,7 +3177,7 @@ const handleSubmit = async (e) => {
                   type="submit"
                   className="primary-btn"
                   disabled={isSubmitting}
-                 >
+                >
                   {isSubmitting
                     ? "Publishing..."
                     : "Publish Delivery →"}
@@ -1969,15 +3189,22 @@ const handleSubmit = async (e) => {
 
           </div>
 
-          {/* ================= RIGHT SUMMARY ================= */}
+          {/* ===================================================
+              RIGHT SUMMARY
+          =================================================== */}
 
           <aside className="project-summary">
 
             <div className="summary-header">
 
               <div>
+
                 <span>02</span>
-                <h3>Delivery Summary</h3>
+
+                <h3>
+                  Delivery Summary
+                </h3>
+
               </div>
 
               <span className="live-label">
@@ -1997,7 +3224,8 @@ const handleSubmit = async (e) => {
                 </span>
 
                 <strong>
-                  {filledFields}/{totalFields}
+                  {filledFields}/
+                  {totalFields}
                 </strong>
 
               </div>
@@ -2049,75 +3277,135 @@ const handleSubmit = async (e) => {
             <div className="summary-details">
 
               <div>
-                <span>Country</span>
+
+                <span>
+                  Country
+                </span>
 
                 <strong>
                   {formData.country ||
                     "Pakistan"}
                 </strong>
+
               </div>
 
               <div>
-                <span>Category</span>
+
+                <span>
+                  Category
+                </span>
 
                 <strong>
                   {formData.category ||
                     "Not specified"}
                 </strong>
+
               </div>
 
               <div>
-                <span>Delivery Cost</span>
+
+                <span>
+                  Delivery Cost
+                </span>
 
                 <strong>
                   {formData.amount
                     ? `${formData.currency} ${formData.amount}`
                     : "Not specified"}
                 </strong>
+
               </div>
 
               <div>
-                <span>Processing</span>
+
+                <span>
+                  Processing
+                </span>
 
                 <strong>
                   {formData.processing ||
                     "Not specified"}
                 </strong>
+
               </div>
 
               <div>
-                <span>Standard Time</span>
+
+                <span>
+                  Standard Time
+                </span>
 
                 <strong>
                   {formData.standardTimeline ||
                     "Not specified"}
                 </strong>
+
               </div>
 
               <div>
-                <span>Team Members</span>
+
+                <span>
+                  Team Members
+                </span>
 
                 <strong>
                   {formData.teamMembers.length}
                 </strong>
+
               </div>
 
               <div>
-                <span>City</span>
+
+                <span>
+                  City
+                </span>
 
                 <strong>
                   {formData.city ||
                     "Not specified"}
                 </strong>
+
               </div>
 
               <div>
-                <span>Communication</span>
+
+                <span>
+                  Portfolio
+                </span>
+
+                <strong>
+                  {formData.portfolio
+                    ? "Provided"
+                    : "Not provided"}
+                </strong>
+
+              </div>
+
+              <div>
+
+                <span>
+                  Social Profile
+                </span>
+
+                <strong>
+                  {formData.socialMediaLink
+                    ? "Provided"
+                    : "Not provided"}
+                </strong>
+
+              </div>
+
+              <div>
+
+                <span>
+                  Communication
+                </span>
 
                 <strong>
                   {formData.communicationMethod ||
                     "Not specified"}
                 </strong>
+
               </div>
 
             </div>
@@ -2156,6 +3444,10 @@ const handleSubmit = async (e) => {
 
               <p>
                 ✓ Location provided
+              </p>
+
+              <p>
+                ✓ Portfolio / proof added
               </p>
 
               <p>

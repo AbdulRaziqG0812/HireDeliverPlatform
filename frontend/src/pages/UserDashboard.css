@@ -4078,3 +4078,370 @@
 .file-meta {
   display: none !important;
 }
+
+/* =========================================================
+   APPROVAL / WAITING STATE
+   ========================================================= */
+
+.approval-state-card {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.06);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.approval-state-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.09);
+}
+
+/* Top status line */
+
+.approval-state-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+}
+
+.approval-state-pending::before {
+  background: linear-gradient(
+    90deg,
+    #f59e0b,
+    #f97316
+  );
+}
+
+.approval-state-rejected::before {
+  background: linear-gradient(
+    90deg,
+    #ef4444,
+    #dc2626
+  );
+}
+
+
+/* =========================================================
+   APPROVAL CONTENT
+   ========================================================= */
+
+.approval-state-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 22px;
+}
+
+.approval-state-icon {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  border-radius: 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 23px;
+  font-weight: 700;
+}
+
+.approval-state-pending .approval-state-icon {
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #fed7aa;
+}
+
+.approval-state-rejected .approval-state-icon {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+
+/* =========================================================
+   APPROVAL COPY
+   ========================================================= */
+
+.approval-state-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.approval-state-copy h3 {
+  margin: 0 0 7px;
+  color: #111827;
+  font-size: 17px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.approval-state-copy p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+
+/* =========================================================
+   APPROVAL MESSAGE
+   ========================================================= */
+
+.approval-state-message {
+  margin-top: 14px;
+  padding: 12px 14px;
+
+  border-radius: 10px;
+
+  font-size: 12px;
+  line-height: 1.55;
+  font-weight: 600;
+}
+
+.approval-state-pending .approval-state-message {
+  color: #9a3412;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+}
+
+.approval-state-rejected .approval-state-message {
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+
+/* =========================================================
+   APPROVAL META
+   ========================================================= */
+
+.approval-state-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.approval-state-meta span {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 6px 9px;
+
+  border-radius: 7px;
+
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   APPROVAL DETAILS NOTICE
+   ========================================================= */
+
+.approval-details-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+
+  margin-bottom: 20px;
+  padding: 15px 17px;
+
+  border-radius: 12px;
+
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.approval-details-icon {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 9px;
+
+  background: #fef3c7;
+  color: #d97706;
+
+  font-size: 15px;
+}
+
+.approval-details-notice > div:last-child {
+  min-width: 0;
+}
+
+.approval-details-eyebrow {
+  margin-bottom: 4px;
+
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.approval-details-notice p {
+  margin: 0;
+
+  color: #78350f;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+
+/* =========================================================
+   PENDING STATUS BADGE
+   ========================================================= */
+
+.approval-state-pending .status-badge {
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+
+
+/* =========================================================
+   REJECTED STATUS BADGE
+   ========================================================= */
+
+.approval-state-rejected .status-badge {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+
+/* =========================================================
+   APPROVAL CARD BUTTON
+   ========================================================= */
+
+.approval-state-card button {
+  margin-top: 16px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 38px;
+  padding: 9px 15px;
+
+  border: none;
+  border-radius: 9px;
+
+  color: #ffffff;
+  background: linear-gradient(
+    135deg,
+    #4f46e5,
+    #06b6d4
+  );
+
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.18);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.approval-state-card button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 9px 20px rgba(79, 70, 229, 0.25);
+}
+
+.approval-state-card button:active {
+  transform: translateY(0);
+}
+
+.approval-state-card button:focus-visible {
+  outline: 3px solid rgba(79, 70, 229, 0.2);
+  outline-offset: 2px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .approval-state-content {
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .approval-state-icon {
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+    border-radius: 12px;
+    font-size: 20px;
+  }
+
+  .approval-state-copy h3 {
+    font-size: 15px;
+  }
+
+  .approval-state-copy p {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 520px) {
+  .approval-state-content {
+    flex-direction: column;
+    padding: 16px;
+  }
+
+  .approval-state-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+
+  .approval-state-copy {
+    width: 100%;
+  }
+
+  .approval-state-message {
+    font-size: 11px;
+  }
+
+  .approval-state-meta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .approval-state-meta span {
+    width: fit-content;
+  }
+
+  .approval-state-card button {
+    width: 100%;
+  }
+
+  .approval-details-notice {
+    padding: 13px;
+  }
+}

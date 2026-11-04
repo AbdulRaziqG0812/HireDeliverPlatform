@@ -80,7 +80,7 @@ def submit_deliver():
 
             currency=request.form.get(
                 "currency",
-                "PKR"
+                "PKR - Pakistani Rupe"
             ),
 
             amount=request.form.get("amount"),
@@ -135,6 +135,10 @@ def submit_deliver():
 
             portfolio=request.form.get(
                 "portfolio"
+            ),
+
+            social_media_link=request.form.get(
+                "socialMediaLink"
             ),
 
             notification_period=request.form.get(

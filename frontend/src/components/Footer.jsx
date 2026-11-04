@@ -7,7 +7,7 @@ function Footer() {
       <div className="footer-top">
 
         <Link to="/home" className="logo">
-          Hire<span>Deliver</span>
+          Tcci<span>HireDeliver</span>Solutions
         </Link>
 
         <p>

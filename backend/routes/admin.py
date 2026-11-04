@@ -4,7 +4,7 @@ import io
 import os
 
 from flask import Blueprint, request, send_file, current_app
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 from itsdangerous import (
@@ -12,7 +12,7 @@ from itsdangerous import (
     BadSignature,
     SignatureExpired,
 )
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 
 from extensions import db
 
@@ -278,6 +278,11 @@ def build_hire_record(
         "id": hire.id,
 
         "user": get_user_info(user),
+
+        # Optional Hire country/currency fields.
+        # These are supported when the database model contains them.
+        "country": safe_text(getattr(hire, "country", "")),
+        "currency": safe_text(getattr(hire, "currency", "")),
 
         # -----------------------------
         # Hire form fields
@@ -545,6 +550,10 @@ def build_deliver_record(
 
         "portfolio": safe_text(
             deliver.portfolio
+        ),
+
+        "social_media_link": safe_text(
+            deliver.social_media_link
         ),
 
         # -----------------------------
@@ -1951,6 +1960,8 @@ def add_hire_sheet(
         "User Name",
         "User Email",
         "User Phone",
+        "Country",
+        "Currency",
 
         "Requirement Title",
         "Requirement Type",
@@ -2016,6 +2027,9 @@ def add_hire_sheet(
             user.get("email"),
 
             user.get("phone"),
+
+            record.get("country"),
+            record.get("currency"),
 
             record.get("title"),
 
@@ -2154,6 +2168,7 @@ def add_deliver_sheet(
         "Full Delivery Location / Address",
 
         "Portfolio / Website / Demo Link",
+        "Social Media / Professional Profile Link",
 
         "Notification / Update Period",
         "Additional Notification Details",
@@ -2261,6 +2276,10 @@ def add_deliver_sheet(
 
             record.get(
                 "portfolio"
+            ),
+
+            record.get(
+                "social_media_link"
             ),
 
             record.get(
@@ -3106,3 +3125,687 @@ def open_deliver_file_from_excel(
     return send_admin_file(
         file_record
     )
+
+# =========================================================
+# EXCEL / CSV IMPORT HELPERS
+# =========================================================
+
+IMPORT_HIRE_HEADERS = [
+    "User Email",
+    "User Name",
+    "Country",
+    "Currency",
+    "Requirement Title",
+    "Requirement Type",
+    "Category",
+    "What Do You Need?",
+    "Requirement Scope",
+    "Tasks / Deliverables",
+    "Total Budget",
+    "Processing Type",
+    "Standard / Required Timeline",
+    "Urgent / Optimal Timeline",
+    "Required Human Resources",
+    "Required Roles",
+    "Required Skills & Expertise",
+    "Required Tools / Software",
+    "Physical Resources / Equipment",
+    "Additional Resources Required",
+    "Required City",
+    "Full Location / Address",
+    "Preferred Communication Method",
+    "Notification / Update Period",
+]
+
+IMPORT_DELIVER_HEADERS = [
+    "Import Key",
+    "User Email",
+    "User Name",
+    "Country",
+    "Delivery Title",
+    "Delivery Type",
+    "Delivery Category",
+    "Description / What Can Your Team Provide?",
+    "Delivery Scope",
+    "Deliverables / Task Breakdown",
+    "Currency",
+    "Amount / Delivery Cost",
+    "Included Cost",
+    "Excluded Cost",
+    "Processing Type",
+    "Standard Delivery Timeline",
+    "Urgent / Priority Timeline",
+    "Available Resources",
+    "Required Resources",
+    "Available Tools & Software",
+    "Physical Resources / Equipment",
+    "Additional Resources",
+    "Delivery City",
+    "Full Delivery Location / Address",
+    "Portfolio / Website / Demo Link",
+    "Notification / Update Period",
+    "Additional Notification Details",
+    "Preferred Communication Method",
+    "Communication Details",
+]
+
+IMPORT_TEAM_HEADERS = [
+    "Import Key",
+    "User Email",
+    "Delivery Title",
+    "Member Name",
+    "Role",
+    "Skills / Expertise",
+    "Years of Experience",
+    "CV / Profile Documents",
+    "Similar Experience",
+]
+
+
+def normalize_import_header(value):
+    """Normalize spreadsheet headers for reliable matching."""
+    return " ".join(
+        safe_text(value)
+        .replace("\n", " ")
+        .strip()
+        .lower()
+        .split()
+    )
+
+
+def normalize_import_key(value):
+    """Normalize an optional import key."""
+    return safe_text(value).strip().lower()
+
+
+def spreadsheet_row_to_dict(headers, values):
+    """Convert one Excel/CSV row into a header/value dictionary."""
+    result = {}
+    for index, header in enumerate(headers):
+        if not safe_text(header).strip():
+            continue
+        result[normalize_import_header(header)] = (
+            values[index] if index < len(values) else ""
+        )
+    return result
+
+
+def import_value(row, header, default=""):
+    """Read a spreadsheet value by human-readable header."""
+    return row.get(
+        normalize_import_header(header),
+        default
+    )
+
+
+def import_number(value):
+    """Convert spreadsheet numeric text into a float when possible."""
+    if value is None:
+        return None
+
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+
+    text_value = safe_text(value).strip()
+    if not text_value:
+        return None
+
+    # Allow common currency formatting such as PKR 100,000 or $1000.
+    cleaned = (
+        text_value
+        .replace(",", "")
+        .replace("PKR", "")
+        .replace("USD", "")
+        .replace("$", "")
+        .strip()
+    )
+
+    try:
+        return float(cleaned)
+    except (TypeError, ValueError):
+        raise ValueError(f"Invalid numeric value: {text_value}")
+
+
+def find_import_user(email):
+    """Find an existing registered user by email only."""
+    email = safe_text(email).strip().lower()
+    if not email:
+        return None
+
+    return (
+        User.query
+        .filter(
+            func.lower(User.email) == email
+        )
+        .first()
+    )
+
+
+def validate_import_user(row, row_number):
+    """Resolve ownership from the registered user's email."""
+    email = safe_text(
+        import_value(row, "User Email")
+    ).strip().lower()
+
+    if not email:
+        return None, f"Row {row_number}: User Email is required."
+
+    user = find_import_user(email)
+    if not user:
+        return None, (
+            f"Row {row_number}: no registered user was found for "
+            f"email '{email}'. Record was not imported."
+        )
+
+    return user, None
+
+
+def get_import_rows_from_csv(file_storage):
+    """Read a CSV upload as normalized row dictionaries."""
+    raw = file_storage.read()
+    if isinstance(raw, bytes):
+        text = raw.decode("utf-8-sig", errors="replace")
+    else:
+        text = safe_text(raw)
+
+    reader = csv.reader(io.StringIO(text))
+    rows = list(reader)
+
+    if not rows:
+        return [], []
+
+    headers = rows[0]
+    data_rows = []
+    for row_number, values in enumerate(rows[1:], start=2):
+        if not any(safe_text(v).strip() for v in values):
+            continue
+        data_rows.append(
+            (row_number, spreadsheet_row_to_dict(headers, values))
+        )
+
+    return data_rows, []
+
+
+def get_import_rows_from_excel(file_storage, preferred_sheet=None):
+    """Read the first relevant Excel sheet as normalized row dictionaries."""
+    workbook = load_workbook(
+        file_storage,
+        read_only=True,
+        data_only=True,
+    )
+
+    try:
+        sheet_names = workbook.sheetnames
+
+        if preferred_sheet and preferred_sheet in sheet_names:
+            worksheet = workbook[preferred_sheet]
+        else:
+            worksheet = workbook[workbook.sheetnames[0]]
+
+        iterator = worksheet.iter_rows(values_only=True)
+        try:
+            headers = list(next(iterator))
+        except StopIteration:
+            return [], sheet_names
+
+        data_rows = []
+        for row_number, values in enumerate(iterator, start=2):
+            values = list(values)
+            if not any(safe_text(v).strip() for v in values):
+                continue
+            data_rows.append(
+                (row_number, spreadsheet_row_to_dict(headers, values))
+            )
+
+        return data_rows, sheet_names
+    finally:
+        workbook.close()
+
+
+def validate_required_import_headers(row_dict, required_headers):
+    """Check that a spreadsheet row contains all required columns."""
+    missing = []
+    for header in required_headers:
+        if normalize_import_header(header) not in row_dict:
+            missing.append(header)
+    return missing
+
+
+def create_import_hire(row, user, row_number):
+    """Create one Pending Hire record from an import row."""
+    title = safe_text(
+        import_value(row, "Requirement Title")
+    ).strip()
+
+    if not title:
+        raise ValueError(
+            f"Row {row_number}: Requirement Title is required."
+        )
+
+    budget = import_number(
+        import_value(row, "Total Budget")
+    )
+
+    kwargs = {
+        "user_id": user.id,
+        "title": title,
+        "type": safe_text(import_value(row, "Requirement Type")).strip(),
+        "category": safe_text(import_value(row, "Category")).strip(),
+        "description": safe_text(import_value(row, "What Do You Need?")).strip(),
+        "scope": safe_text(import_value(row, "Requirement Scope")).strip(),
+        "deliverables": safe_text(import_value(row, "Tasks / Deliverables")).strip(),
+        "budget": budget,
+        "processing": safe_text(import_value(row, "Processing Type")).strip(),
+        "standard_timeline": safe_text(import_value(row, "Standard / Required Timeline")).strip(),
+        "urgent_timeline": safe_text(import_value(row, "Urgent / Optimal Timeline")).strip(),
+        "human_resources": safe_text(import_value(row, "Required Human Resources")).strip(),
+        "roles": safe_text(import_value(row, "Required Roles")).strip(),
+        "skills": safe_text(import_value(row, "Required Skills & Expertise")).strip(),
+        "tools": safe_text(import_value(row, "Required Tools / Software")).strip(),
+        "physical_resources": safe_text(import_value(row, "Physical Resources / Equipment")).strip(),
+        "additional_resources": safe_text(import_value(row, "Additional Resources Required")).strip(),
+        "location": safe_text(import_value(row, "Required City")).strip(),
+        "full_location": safe_text(import_value(row, "Full Location / Address")).strip(),
+        "communication_method": safe_text(import_value(row, "Preferred Communication Method")).strip(),
+        "notification_period": safe_text(import_value(row, "Notification / Update Period")).strip(),
+    }
+
+    # Keep compatibility with databases where Country/Currency were not
+    # added to HireRequirement yet.
+    country = safe_text(import_value(row, "Country")).strip()
+    currency = safe_text(import_value(row, "Currency")).strip()
+
+    if hasattr(HireRequirement, "country"):
+        kwargs["country"] = country
+
+    if hasattr(HireRequirement, "currency"):
+        kwargs["currency"] = currency
+
+    hire = HireRequirement(**kwargs)
+    hire.status = "Pending"
+    return hire
+
+
+def create_import_deliver(row, user, row_number):
+    """Create one Pending Deliver record from an import row."""
+    title = safe_text(
+        import_value(row, "Delivery Title")
+    ).strip()
+
+    if not title:
+        raise ValueError(
+            f"Row {row_number}: Delivery Title is required."
+        )
+
+    amount = import_number(
+        import_value(row, "Amount / Delivery Cost")
+    )
+
+    deliver = DeliverProposal(
+        user_id=user.id,
+        country=safe_text(import_value(row, "Country")).strip(),
+        title=title,
+        type=safe_text(import_value(row, "Delivery Type")).strip(),
+        category=safe_text(import_value(row, "Delivery Category")).strip(),
+        description=safe_text(import_value(row, "Description / What Can Your Team Provide?")).strip(),
+        scope=safe_text(import_value(row, "Delivery Scope")).strip(),
+        deliverables=safe_text(import_value(row, "Deliverables / Task Breakdown")).strip(),
+        currency=safe_text(import_value(row, "Currency") or "PKR").strip() or "PKR",
+        amount=amount,
+        included_cost=safe_text(import_value(row, "Included Cost")).strip(),
+        excluded_cost=safe_text(import_value(row, "Excluded Cost")).strip(),
+        processing=safe_text(import_value(row, "Processing Type")).strip(),
+        standard_timeline=safe_text(import_value(row, "Standard Delivery Timeline")).strip(),
+        urgent_timeline=safe_text(import_value(row, "Urgent / Priority Timeline")).strip(),
+        available_resources=safe_text(import_value(row, "Available Resources")).strip(),
+        required_resources=safe_text(import_value(row, "Required Resources")).strip(),
+        tools=safe_text(import_value(row, "Available Tools & Software")).strip(),
+        physical_resources=safe_text(import_value(row, "Physical Resources / Equipment")).strip(),
+        additional_resources=safe_text(import_value(row, "Additional Resources")).strip(),
+        city=safe_text(import_value(row, "Delivery City")).strip(),
+        full_location=safe_text(import_value(row, "Full Delivery Location / Address")).strip(),
+        portfolio=safe_text(import_value(row, "Portfolio / Website / Demo Link")).strip(),
+        notification_period=safe_text(import_value(row, "Notification / Update Period")).strip(),
+        notification_details=safe_text(import_value(row, "Additional Notification Details")).strip(),
+        communication_method=safe_text(import_value(row, "Preferred Communication Method")).strip(),
+        communication_details=safe_text(import_value(row, "Communication Details")).strip(),
+    )
+
+    deliver.status = "Pending"
+    return deliver
+
+
+def read_team_member_rows(workbook_file):
+    """Read Deliver Team Members sheet from an Excel workbook."""
+    workbook = load_workbook(
+        workbook_file,
+        read_only=True,
+        data_only=True,
+    )
+
+    try:
+        if "Deliver Team Members" not in workbook.sheetnames:
+            return []
+
+        worksheet = workbook["Deliver Team Members"]
+        iterator = worksheet.iter_rows(values_only=True)
+
+        try:
+            headers = list(next(iterator))
+        except StopIteration:
+            return []
+
+        rows = []
+        for row_number, values in enumerate(iterator, start=2):
+            values = list(values)
+            if not any(safe_text(v).strip() for v in values):
+                continue
+            rows.append(
+                (row_number, spreadsheet_row_to_dict(headers, values))
+            )
+        return rows
+    finally:
+        workbook.close()
+
+
+def add_import_team_members(
+    team_rows,
+    deliver_map,
+    errors
+):
+    """Attach imported team members to imported Deliver records."""
+    imported = 0
+
+    for row_number, row in team_rows:
+        import_key = normalize_import_key(
+            import_value(row, "Import Key")
+        )
+
+        member_name = safe_text(
+            import_value(row, "Member Name")
+        ).strip()
+
+        if not import_key:
+            errors.append(
+                f"Team Members row {row_number}: Import Key is required."
+            )
+            continue
+
+        deliver = deliver_map.get(import_key)
+        if not deliver:
+            errors.append(
+                f"Team Members row {row_number}: no Deliver record was found for Import Key '{import_key}'."
+            )
+            continue
+
+        if not member_name:
+            errors.append(
+                f"Team Members row {row_number}: Member Name is required."
+            )
+            continue
+
+        member = DeliverTeamMember(
+            deliver_id=deliver.id,
+            name=member_name,
+            role=safe_text(import_value(row, "Role")).strip(),
+            skills=safe_text(import_value(row, "Skills / Expertise")).strip(),
+            experience=safe_text(import_value(row, "Years of Experience")).strip(),
+            profile=safe_text(import_value(row, "CV / Profile Documents")).strip(),
+            similar_experience=safe_text(import_value(row, "Similar Experience")).strip(),
+        )
+        db.session.add(member)
+        imported += 1
+
+    return imported
+
+
+def build_import_template(
+    record_type
+):
+    """Build a blank Excel template for Hire or Deliver imports."""
+    workbook = Workbook()
+    default_sheet = workbook.active
+    workbook.remove(default_sheet)
+
+    if record_type == "hire":
+        sheet = workbook.create_sheet("Hire Records")
+        sheet.append(IMPORT_HIRE_HEADERS)
+        style_excel_sheet(sheet)
+        filename = "Hire_Import_Template.xlsx"
+    else:
+        sheet = workbook.create_sheet("Deliver Records")
+        sheet.append(IMPORT_DELIVER_HEADERS)
+        style_excel_sheet(sheet)
+
+        team_sheet = workbook.create_sheet("Deliver Team Members")
+        team_sheet.append(IMPORT_TEAM_HEADERS)
+        style_excel_sheet(team_sheet)
+        filename = "Deliver_Import_Template.xlsx"
+
+    output = io.BytesIO()
+    workbook.save(output)
+    output.seek(0)
+    return output, filename
+
+
+# =========================================================
+# IMPORT EXCEL / CSV
+# =========================================================
+
+@admin_bp.route(
+    "/records/import",
+    methods=["POST"]
+)
+@admin_required
+def import_records():
+    """
+    Import Hire/Deliver records from Excel or CSV.
+
+    Ownership is ALWAYS resolved from an existing registered
+    user's email. User Name is informational only and is never
+    used to assign ownership.
+
+    Imported records always start as Pending so the same admin
+    approval workflow is used for manually imported records.
+    """
+    try:
+        record_type = normalize_record_type(
+            request.form.get("type", "", type=str)
+        )
+
+        if record_type not in {"hire", "deliver"}:
+            return {
+                "status": "error",
+                "message": "Import type must be hire or deliver."
+            }, 400
+
+        uploaded_file = request.files.get("file")
+
+        if not uploaded_file or not uploaded_file.filename:
+            return {
+                "status": "error",
+                "message": "Please select an Excel or CSV file."
+            }, 400
+
+        filename = safe_text(uploaded_file.filename).lower()
+        extension = os.path.splitext(filename)[1]
+
+        if extension not in {".xlsx", ".xlsm", ".csv"}:
+            return {
+                "status": "error",
+                "message": "Only .xlsx, .xlsm and .csv files are supported."
+            }, 400
+
+        errors = []
+        imported_count = 0
+        skipped_count = 0
+        deliver_map = {}
+
+        if extension == ".csv":
+            rows, _ = get_import_rows_from_csv(uploaded_file)
+            team_rows = []
+        else:
+            # Read the uploaded workbook once for the main sheet and again
+            # for team members. read_only mode keeps memory usage low.
+            preferred_sheet = (
+                "Hire Records"
+                if record_type == "hire"
+                else "Deliver Records"
+            )
+            rows, _ = get_import_rows_from_excel(
+                uploaded_file,
+                preferred_sheet=preferred_sheet
+            )
+
+            # The uploaded stream may need to be reset for the team sheet.
+            uploaded_file.stream.seek(0)
+            team_rows = (
+                read_team_member_rows(uploaded_file)
+                if record_type == "deliver"
+                else []
+            )
+
+        required_headers = (
+            [
+                "User Email",
+                "Requirement Title",
+            ]
+            if record_type == "hire"
+            else [
+                "User Email",
+                "Delivery Title",
+            ]
+        )
+
+        for row_number, row in rows:
+            missing = validate_required_import_headers(
+                row,
+                required_headers
+            )
+
+            if missing:
+                errors.append(
+                    f"Row {row_number}: missing column(s): "
+                    + ", ".join(missing)
+                )
+                skipped_count += 1
+                continue
+
+            user, user_error = validate_import_user(
+                row,
+                row_number
+            )
+
+            if user_error:
+                errors.append(user_error)
+                skipped_count += 1
+                continue
+
+            try:
+                if record_type == "hire":
+                    record = create_import_hire(
+                        row,
+                        user,
+                        row_number
+                    )
+                    db.session.add(record)
+                    imported_count += 1
+
+                else:
+                    record = create_import_deliver(
+                        row,
+                        user,
+                        row_number
+                    )
+                    db.session.add(record)
+                    db.session.flush()
+
+                    import_key = normalize_import_key(
+                        import_value(row, "Import Key")
+                    )
+                    if import_key:
+                        deliver_map[import_key] = record
+
+                    imported_count += 1
+
+            except Exception as row_error:
+                skipped_count += 1
+                errors.append(
+                    f"Row {row_number}: {safe_text(row_error)}"
+                )
+
+        # Flush valid main records before attaching team members.
+        db.session.flush()
+
+        team_imported_count = 0
+        if record_type == "deliver" and team_rows:
+            team_imported_count = add_import_team_members(
+                team_rows,
+                deliver_map,
+                errors
+            )
+
+        db.session.commit()
+
+        return {
+            "status": "success",
+            "message": "Import completed successfully.",
+            "record_type": record_type,
+            "imported_records": imported_count,
+            "imported_team_members": team_imported_count,
+            "skipped_records": skipped_count,
+            "errors": errors,
+        }, 200
+
+    except Exception as e:
+        db.session.rollback()
+        return {
+            "status": "error",
+            "message": "Failed to import records.",
+            "error": str(e),
+        }, 500
+
+
+# =========================================================
+# IMPORT TEMPLATES
+# =========================================================
+
+@admin_bp.route(
+    "/records/import/template",
+    methods=["GET"]
+)
+@admin_required
+def download_import_template():
+    """Download a blank Hire or Deliver import template."""
+    try:
+        record_type = normalize_record_type(
+            request.args.get("type", "", type=str)
+        )
+
+        if record_type not in {"hire", "deliver"}:
+            return {
+                "status": "error",
+                "message": "Template type must be hire or deliver."
+            }, 400
+
+        output, filename = build_import_template(
+            record_type
+        )
+
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=filename,
+            mimetype=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            )
+        )
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": "Failed to generate import template.",
+            "error": str(e),
+        }, 500
+

@@ -51,7 +51,7 @@ class DeliverProposal(db.Model):
     )
 
     currency = db.Column(
-        db.String(10),
+        db.String(100),
         nullable=False,
         default="PKR"
     )
@@ -115,6 +115,10 @@ class DeliverProposal(db.Model):
     )
 
     portfolio = db.Column(
+        db.String(500)
+    )
+
+    social_media_link = db.Column(
         db.String(500)
     )
 
