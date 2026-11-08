@@ -537,6 +537,11 @@ function Deliver() {
           "Your login session has expired. Please login again."
         );
 
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
+
         setIsSubmitting(false);
         return;
       }
@@ -715,6 +720,11 @@ function Deliver() {
           "Your login session has expired. Please login again."
         );
 
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
+
         setIsSubmitting(false);
         return;
       }
@@ -797,6 +807,13 @@ function Deliver() {
         error.message ||
           "Something went wrong while submitting."
       );
+
+      // Always bring the user back to the message at the top
+      // when any submission error occurs.
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
     } finally {
       setIsSubmitting(false);
     }

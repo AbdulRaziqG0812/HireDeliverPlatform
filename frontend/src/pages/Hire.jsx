@@ -1223,6 +1223,11 @@ function Hire() {
           "Your login session has expired. Please login again."
         );
 
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
+
         setIsSubmitting(false);
         return;
       }
@@ -1379,6 +1384,11 @@ function Hire() {
           "Your login session has expired. Please login again."
         );
 
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
+
         setIsSubmitting(false);
 
         return;
@@ -1457,6 +1467,11 @@ function Hire() {
         error.message ||
           "Something went wrong while submitting the requirement."
       );
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
     } finally {
       setIsSubmitting(false);
     }

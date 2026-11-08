@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import hashlib
 
 from flask import Blueprint, request
 from werkzeug.utils import secure_filename
@@ -60,6 +61,34 @@ def submit_deliver():
                 "status": "error"
             }, 401
 
+        duplicate_string = "|".join([
+            str(user_id),
+            request.form.get("title", "").strip().lower(),
+            request.form.get("description", "").strip().lower(),
+            request.form.get("scope", "").strip().lower(),
+        ])
+
+        record_hash = hashlib.sha256(
+            duplicate_string.encode("utf-8")
+        ).hexdigest()
+
+        existing_proposal = DeliverProposal.query.filter_by(
+            user_id=user_id,
+            record_hash=record_hash
+        ).first()
+
+        if existing_proposal:
+            return {
+                "status": "error",
+                "message": (
+                    f"Duplicate entry. You have already submitted "
+                    f"this Deliver record: "
+                    f"'{existing_proposal.title}'. "
+                    f"Please change the Title, Description, or Scope "
+                    f"before submitting again."
+                )
+            }, 409
+
 
         # =================================================
         # MAIN DELIVER DATA
@@ -69,6 +98,8 @@ def submit_deliver():
 
             user_id=user_id,
 
+            record_key=f"DELIVER-{uuid.uuid4().hex}",
+            record_hash=record_hash,
             country=request.form.get("country"),
             title=request.form.get("title"),
             type=request.form.get("type"),

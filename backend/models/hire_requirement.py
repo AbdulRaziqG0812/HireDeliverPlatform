@@ -18,10 +18,24 @@ class HireRequirement(db.Model):
         nullable=False
     )
 
+    # Unique backend-generated identity
+    record_key = db.Column(
+        db.String(100),
+        unique=True,
+        nullable=False,
+        index=True
+    )
+
+        # Duplicate protection hash
+    record_hash = db.Column(
+        db.String(64),
+        nullable=True
+    )
+
     country = db.Column(
-    db.String(100),
-    nullable=False,
-    default="Pakistan"
+        db.String(100),
+        nullable=False,
+        default="Pakistan"
     )
 
     title = db.Column(

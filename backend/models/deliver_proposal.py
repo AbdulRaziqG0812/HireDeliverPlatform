@@ -15,6 +15,21 @@ class DeliverProposal(db.Model):
         nullable=False
     )
 
+    # Unique backend-generated identity
+    record_key = db.Column(
+        db.String(100),
+        unique=True,
+        nullable=False,
+        index=True
+    )
+
+    record_hash = db.Column(
+        db.String(64),
+        unique=True,
+        nullable=False,
+        index=True
+    )
+
     country = db.Column(
         db.String(100),
         nullable=False

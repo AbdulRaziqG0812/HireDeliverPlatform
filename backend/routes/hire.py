@@ -1,5 +1,6 @@
 import os
 import uuid
+import hashlib
 
 from flask import Blueprint, request
 from werkzeug.utils import secure_filename
@@ -97,13 +98,55 @@ def submit_hire():
 
     try:
 
-        # --------------------------------------------------
-        # Create Hire Requirement
-        # --------------------------------------------------
+        # =====================================================
+        # DUPLICATE HIRE PROTECTION
+        # Same user + same title + description + scope
+        # =====================================================
+
+        duplicate_string = "|".join([
+            str(user_id),
+            request.form.get(
+                "title",
+                ""
+            ).strip().lower(),
+            request.form.get(
+                "description",
+                ""
+            ).strip().lower(),
+            request.form.get(
+                "scope",
+                ""
+            ).strip().lower(),
+        ])
+
+        record_hash = hashlib.sha256(
+            duplicate_string.encode("utf-8")
+        ).hexdigest()
+
+        existing_requirement = HireRequirement.query.filter_by(
+            user_id=user_id,
+            record_hash=record_hash
+        ).first()
+
+        if existing_requirement:
+
+            return {
+                "status": "error",
+                "message": (
+                    f"Duplicate entry. You have already submitted "
+                    f"this Hire requirement: "
+                    f"'{existing_requirement.title}'. "
+                    f"Please change the Title, Description, or Scope "
+                    f"before submitting again."
+                )
+            }, 409
 
         hire = HireRequirement(
 
             user_id=user_id,
+            record_hash=record_hash,
+
+            record_key=f"HIRE-{uuid.uuid4().hex}",
 
             country=request.form.get(
                 "country",
