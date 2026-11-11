@@ -1,4 +1,3 @@
-
 import csv
 import io
 import os
@@ -7,11 +6,7 @@ from flask import Blueprint, request, send_file, current_app
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
-from itsdangerous import (
-    URLSafeTimedSerializer,
-    BadSignature,
-    SignatureExpired,
-)
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy import or_, func
 
 from extensions import db
@@ -42,12 +37,7 @@ ALLOWED_STATUSES = [
     "Rejected",
 ]
 
-BASE_DIR = os.path.dirname(
-    os.path.dirname(
-        os.path.abspath(__file__)
-    )
-)
-
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FILE_LINK_MAX_AGE = 7 * 24 * 60 * 60
 
 
@@ -56,80 +46,30 @@ FILE_LINK_MAX_AGE = 7 * 24 * 60 * 60
 # =========================================================
 
 def safe_text(value):
-    """
-    Safely convert any value to string.
-    None becomes empty string.
-    """
-    if value is None:
-        return ""
-
-    return str(value)
+    return "" if value is None else str(value)
 
 
 def format_datetime(value):
-    """
-    Format database datetime values consistently.
-    """
     if not value:
         return ""
-
     try:
-        return value.strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        return value.strftime("%Y-%m-%d %H:%M:%S")
     except Exception:
         return str(value)
 
 
 def parse_page():
-    """
-    Read and sanitize pagination parameters.
-    """
-    page = request.args.get(
-        "page",
-        1,
-        type=int
-    )
-
-    per_page = request.args.get(
-        "per_page",
-        10,
-        type=int
-    )
-
-    page = max(page, 1)
-
-    per_page = max(
-        1,
-        min(per_page, 100)
-    )
-
+    page = max(request.args.get("page", 1, type=int), 1)
+    per_page = max(1, min(request.args.get("per_page", 10, type=int), 100))
     return page, per_page
 
 
 def normalize_record_type(value):
-    """
-    Allow only:
-    all
-    hire
-    deliver
-    """
     value = safe_text(value).strip().lower()
-
-    if value in {
-        "all",
-        "hire",
-        "deliver"
-    }:
-        return value
-
-    return "all"
+    return value if value in {"all", "hire", "deliver"} else "all"
 
 
 def get_user_info(user):
-    """
-    Return safe user information for admin dashboard.
-    """
     if not user:
         return {
             "id": None,
@@ -148,43 +88,39 @@ def get_user_info(user):
     }
 
 
+def get_record_key(record_type, record):
+    """
+    Use the database record_key when available.
+    Older rows without record_key get a stable fallback.
+    """
+    existing = safe_text(getattr(record, "record_key", "")).strip()
+    if existing:
+        return existing
+
+    prefix = "HIRE" if record_type == "hire" else "DELIVER"
+    return f"{prefix}-{record.id}"
+
+
 # =========================================================
 # FILE HELPERS
 # =========================================================
 
 def get_file_path(file_record):
-    """
-    Resolve physical file path safely.
-
-    Prevents files from being accessed outside
-    the backend directory.
-    """
     if not file_record:
         return None
 
-    raw_path = getattr(
-        file_record,
-        "file_path",
-        None
-    )
-
+    raw_path = getattr(file_record, "file_path", None)
     if not raw_path:
         return None
 
-    if os.path.isabs(raw_path):
-        path = os.path.abspath(raw_path)
-    else:
-        path = os.path.abspath(
-            os.path.join(
-                BASE_DIR,
-                raw_path
-            )
-        )
+    path = (
+        os.path.abspath(raw_path)
+        if os.path.isabs(raw_path)
+        else os.path.abspath(os.path.join(BASE_DIR, raw_path))
+    )
 
     try:
-        if os.path.commonpath(
-            [path, BASE_DIR]
-        ) != BASE_DIR:
+        if os.path.commonpath([path, BASE_DIR]) != BASE_DIR:
             return None
     except ValueError:
         return None
@@ -193,694 +129,215 @@ def get_file_path(file_record):
 
 
 def get_file_info(file_record):
-    """
-    Convert file database object into
-    JSON/export-friendly data.
-    """
     return {
         "id": file_record.id,
-
-        "original_name": safe_text(
-            getattr(
-                file_record,
-                "original_name",
-                ""
-            )
-        ),
-
-        "stored_name": safe_text(
-            getattr(
-                file_record,
-                "stored_name",
-                ""
-            )
-        ),
-
-        "file_type": safe_text(
-            getattr(
-                file_record,
-                "file_type",
-                ""
-            )
-        ),
-
-        "file_size": getattr(
-            file_record,
-            "file_size",
-            None
-        ),
-
+        "original_name": safe_text(getattr(file_record, "original_name", "")),
+        "stored_name": safe_text(getattr(file_record, "stored_name", "")),
+        "file_type": safe_text(getattr(file_record, "file_type", "")),
+        "file_size": getattr(file_record, "file_size", None),
         "uploaded_at": (
             file_record.uploaded_at.isoformat()
-            if getattr(
-                file_record,
-                "uploaded_at",
-                None
-            )
+            if getattr(file_record, "uploaded_at", None)
             else None
         ),
     }
 
 
 # =========================================================
-# BUILD HIRE RECORD
+# RECORD BUILDERS
 # =========================================================
 
-def build_hire_record(
-    hire,
-    user=None
-):
-    """
-    Build complete Hire record.
-
-    Fields here correspond to the actual
-    Hire form fields plus admin/system information.
-    """
-
-    user = user or User.query.filter_by(
-        id=hire.user_id
-    ).first()
+def build_hire_record(hire, user=None):
+    user = user or User.query.filter_by(id=hire.user_id).first()
 
     files = (
         HireFile.query
-        .filter_by(
-            hire_id=hire.id
-        )
-        .order_by(
-            HireFile.id.asc()
-        )
+        .filter_by(hire_id=hire.id)
+        .order_by(HireFile.id.asc())
         .all()
     )
 
     return {
         "record_type": "hire",
-
         "id": hire.id,
-
+        "record_key": get_record_key("hire", hire),
         "user": get_user_info(user),
-
-        # Optional Hire country/currency fields.
-        # These are supported when the database model contains them.
         "country": safe_text(getattr(hire, "country", "")),
         "currency": safe_text(getattr(hire, "currency", "")),
-
-        # -----------------------------
-        # Hire form fields
-        # -----------------------------
-
-        "title": safe_text(
-            hire.title
-        ),
-
-        "type": safe_text(
-            hire.type
-        ),
-
-        "category": safe_text(
-            hire.category
-        ),
-
-        "description": safe_text(
-            hire.description
-        ),
-
-        "scope": safe_text(
-            hire.scope
-        ),
-
-        "deliverables": safe_text(
-            hire.deliverables
-        ),
-
-        "budget": (
-            float(hire.budget)
-            if hire.budget is not None
-            else None
-        ),
-
-        "processing": safe_text(
-            hire.processing
-        ),
-
-        "standard_timeline": safe_text(
-            hire.standard_timeline
-        ),
-
-        "urgent_timeline": safe_text(
-            hire.urgent_timeline
-        ),
-
-        "human_resources": safe_text(
-            hire.human_resources
-        ),
-
-        "roles": safe_text(
-            hire.roles
-        ),
-
-        "skills": safe_text(
-            hire.skills
-        ),
-
-        "tools": safe_text(
-            hire.tools
-        ),
-
-        "physical_resources": safe_text(
-            hire.physical_resources
-        ),
-
-        "additional_resources": safe_text(
-            hire.additional_resources
-        ),
-
-        "location": safe_text(
-            hire.location
-        ),
-
-        "full_location": safe_text(
-            hire.full_location
-        ),
-
-        "communication_method": safe_text(
-            hire.communication_method
-        ),
-
-        "notification_period": safe_text(
-            hire.notification_period
-        ),
-
-        # -----------------------------
-        # Admin/system fields
-        # -----------------------------
-
-        "status": (
-            safe_text(hire.status)
-            or "Pending"
-        ),
-
-        "files": [
-            get_file_info(file)
-            for file in files
-        ],
-
-        "created_at": format_datetime(
-            hire.created_at
-        ),
-
-        "updated_at": format_datetime(
-            hire.updated_at
-        ),
+        "title": safe_text(hire.title),
+        "type": safe_text(hire.type),
+        "category": safe_text(hire.category),
+        "description": safe_text(hire.description),
+        "scope": safe_text(hire.scope),
+        "deliverables": safe_text(hire.deliverables),
+        "budget": float(hire.budget) if hire.budget is not None else None,
+        "processing": safe_text(hire.processing),
+        "standard_timeline": safe_text(hire.standard_timeline),
+        "urgent_timeline": safe_text(hire.urgent_timeline),
+        "human_resources": safe_text(hire.human_resources),
+        "roles": safe_text(hire.roles),
+        "skills": safe_text(hire.skills),
+        "tools": safe_text(hire.tools),
+        "physical_resources": safe_text(hire.physical_resources),
+        "additional_resources": safe_text(hire.additional_resources),
+        "location": safe_text(hire.location),
+        "full_location": safe_text(hire.full_location),
+        "communication_method": safe_text(hire.communication_method),
+        "notification_period": safe_text(hire.notification_period),
+        "status": safe_text(hire.status) or "Pending",
+        "files": [get_file_info(file) for file in files],
+        "created_at": format_datetime(hire.created_at),
+        "updated_at": format_datetime(hire.updated_at),
     }
 
 
-# =========================================================
-# BUILD DELIVER RECORD
-# =========================================================
-
-def build_deliver_record(
-    deliver,
-    user=None
-):
-    """
-    Build complete Deliver record.
-
-    Includes all actual Deliver form fields,
-    team members and uploaded files.
-    """
-
-    user = user or User.query.filter_by(
-        id=deliver.user_id
-    ).first()
+def build_deliver_record(deliver, user=None):
+    user = user or User.query.filter_by(id=deliver.user_id).first()
 
     team_members = (
         DeliverTeamMember.query
-        .filter_by(
-            deliver_id=deliver.id
-        )
-        .order_by(
-            DeliverTeamMember.id.asc()
-        )
+        .filter_by(deliver_id=deliver.id)
+        .order_by(DeliverTeamMember.id.asc())
         .all()
     )
 
     files = (
         DeliverFile.query
-        .filter_by(
-            deliver_id=deliver.id
-        )
-        .order_by(
-            DeliverFile.id.asc()
-        )
+        .filter_by(deliver_id=deliver.id)
+        .order_by(DeliverFile.id.asc())
         .all()
     )
 
     return {
         "record_type": "deliver",
-
         "id": deliver.id,
-
+        "record_key": get_record_key("deliver", deliver),
         "user": get_user_info(user),
-
-        # -----------------------------
-        # Basic Information
-        # -----------------------------
-
-        "country": safe_text(
-            deliver.country
-        ),
-
-        "title": safe_text(
-            deliver.title
-        ),
-
-        "type": safe_text(
-            deliver.type
-        ),
-
-        "category": safe_text(
-            deliver.category
-        ),
-
-        # -----------------------------
-        # Delivery Details
-        # -----------------------------
-
-        "description": safe_text(
-            deliver.description
-        ),
-
-        "scope": safe_text(
-            deliver.scope
-        ),
-
-        "deliverables": safe_text(
-            deliver.deliverables
-        ),
-
-        # -----------------------------
-        # Cost & Processing
-        # -----------------------------
-
-        "currency": safe_text(
-            deliver.currency
-        ),
-
-        "amount": (
-            float(deliver.amount)
-            if deliver.amount is not None
-            else None
-        ),
-
-        "included_cost": safe_text(
-            deliver.included_cost
-        ),
-
-        "excluded_cost": safe_text(
-            deliver.excluded_cost
-        ),
-
-        "processing": safe_text(
-            deliver.processing
-        ),
-
-        "standard_timeline": safe_text(
-            deliver.standard_timeline
-        ),
-
-        "urgent_timeline": safe_text(
-            deliver.urgent_timeline
-        ),
-
-        # -----------------------------
-        # Resources & Tools
-        # -----------------------------
-
-        "available_resources": safe_text(
-            deliver.available_resources
-        ),
-
-        "required_resources": safe_text(
-            deliver.required_resources
-        ),
-
-        "tools": safe_text(
-            deliver.tools
-        ),
-
-        "physical_resources": safe_text(
-            deliver.physical_resources
-        ),
-
-        "additional_resources": safe_text(
-            deliver.additional_resources
-        ),
-
-        # -----------------------------
-        # Location & Portfolio
-        # -----------------------------
-
-        "city": safe_text(
-            deliver.city
-        ),
-
-        "full_location": safe_text(
-            deliver.full_location
-        ),
-
-        "portfolio": safe_text(
-            deliver.portfolio
-        ),
-
-        "social_media_link": safe_text(
-            deliver.social_media_link
-        ),
-
-        # -----------------------------
-        # Notification
-        # -----------------------------
-
-        "notification_period": safe_text(
-            deliver.notification_period
-        ),
-
-        "notification_details": safe_text(
-            deliver.notification_details
-        ),
-
-        # -----------------------------
-        # Communication
-        # -----------------------------
-
-        "communication_method": safe_text(
-            deliver.communication_method
-        ),
-
-        "communication_details": safe_text(
-            deliver.communication_details
-        ),
-
-        # -----------------------------
-        # Team Members
-        # -----------------------------
-
+        "country": safe_text(deliver.country),
+        "title": safe_text(deliver.title),
+        "type": safe_text(deliver.type),
+        "category": safe_text(deliver.category),
+        "description": safe_text(deliver.description),
+        "scope": safe_text(deliver.scope),
+        "deliverables": safe_text(deliver.deliverables),
+        "currency": safe_text(deliver.currency),
+        "amount": float(deliver.amount) if deliver.amount is not None else None,
+        "included_cost": safe_text(deliver.included_cost),
+        "excluded_cost": safe_text(deliver.excluded_cost),
+        "processing": safe_text(deliver.processing),
+        "standard_timeline": safe_text(deliver.standard_timeline),
+        "urgent_timeline": safe_text(deliver.urgent_timeline),
+        "available_resources": safe_text(deliver.available_resources),
+        "required_resources": safe_text(deliver.required_resources),
+        "tools": safe_text(deliver.tools),
+        "physical_resources": safe_text(deliver.physical_resources),
+        "additional_resources": safe_text(deliver.additional_resources),
+        "city": safe_text(deliver.city),
+        "full_location": safe_text(deliver.full_location),
+        "portfolio": safe_text(deliver.portfolio),
+        "social_media_link": safe_text(deliver.social_media_link),
+        "notification_period": safe_text(deliver.notification_period),
+        "notification_details": safe_text(deliver.notification_details),
+        "communication_method": safe_text(deliver.communication_method),
+        "communication_details": safe_text(deliver.communication_details),
         "team_members": [
             {
                 "id": member.id,
-
-                "name": safe_text(
-                    member.name
-                ),
-
-                "role": safe_text(
-                    member.role
-                ),
-
-                "skills": safe_text(
-                    member.skills
-                ),
-
-                "experience": safe_text(
-                    member.experience
-                ),
-
-                "profile": safe_text(
-                    member.profile
-                ),
-
-                "similar_experience": safe_text(
-                    member.similar_experience
-                ),
+                "name": safe_text(member.name),
+                "role": safe_text(member.role),
+                "skills": safe_text(member.skills),
+                "experience": safe_text(member.experience),
+                "profile": safe_text(member.profile),
+                "similar_experience": safe_text(member.similar_experience),
             }
-
             for member in team_members
         ],
-
-        # -----------------------------
-        # Files
-        # -----------------------------
-
-        "files": [
-            get_file_info(file)
-            for file in files
-        ],
-
-        # -----------------------------
-        # Admin/system
-        # -----------------------------
-
-        "status": (
-            safe_text(deliver.status)
-            or "Pending"
-        ),
-
-        "created_at": format_datetime(
-            deliver.created_at
-        ),
-
-        "updated_at": format_datetime(
-            deliver.updated_at
-        ),
+        "files": [get_file_info(file) for file in files],
+        "status": safe_text(deliver.status) or "Pending",
+        "created_at": format_datetime(deliver.created_at),
+        "updated_at": format_datetime(deliver.updated_at),
     }
 
 
 # =========================================================
-# GET EXPORT RECORDS
+# QUERY HELPERS
 # =========================================================
 
-def get_export_records(
-    record_type="all",
-    search=""
-):
-    """
-    Load records for Excel/CSV export.
-    """
-
-    search = safe_text(
-        search
-    ).strip()
-
-    pattern = (
-        f"%{search}%"
-        if search
-        else None
-    )
+def get_export_records(record_type="all", search=""):
+    search = safe_text(search).strip()
+    pattern = f"%{search}%" if search else None
 
     hires = []
     delivers = []
 
-    # =====================================================
-    # HIRE
-    # =====================================================
-
-    if record_type in {
-        "all",
-        "hire"
-    }:
-
+    if record_type in {"all", "hire"}:
         query = (
-            db.session
-            .query(
-                HireRequirement,
-                User
-            )
-            .join(
-                User,
-                HireRequirement.user_id
-                == User.id
-            )
+            db.session.query(HireRequirement, User)
+            .join(User, HireRequirement.user_id == User.id)
         )
 
         if pattern:
-
             query = query.filter(
                 or_(
-                    HireRequirement.title.ilike(
-                        pattern
-                    ),
-
-                    HireRequirement.category.ilike(
-                        pattern
-                    ),
-
-                    HireRequirement.type.ilike(
-                        pattern
-                    ),
-
-                    HireRequirement.description.ilike(
-                        pattern
-                    ),
-
-                    HireRequirement.scope.ilike(
-                        pattern
-                    ),
-
-                    HireRequirement.deliverables.ilike(
-                        pattern
-                    ),
-
-                    HireRequirement.location.ilike(
-                        pattern
-                    ),
-
-                    HireRequirement.full_location.ilike(
-                        pattern
-                    ),
-
-                    HireRequirement.human_resources.ilike(
-                        pattern
-                    ),
-
-                    HireRequirement.roles.ilike(
-                        pattern
-                    ),
-
-                    HireRequirement.skills.ilike(
-                        pattern
-                    ),
-
-                    HireRequirement.tools.ilike(
-                        pattern
-                    ),
-
-                    HireRequirement.physical_resources.ilike(
-                        pattern
-                    ),
-
-                    HireRequirement.additional_resources.ilike(
-                        pattern
-                    ),
-
-                    User.name.ilike(
-                        pattern
-                    ),
-
-                    User.email.ilike(
-                        pattern
-                    ),
+                    HireRequirement.title.ilike(pattern),
+                    HireRequirement.category.ilike(pattern),
+                    HireRequirement.type.ilike(pattern),
+                    HireRequirement.description.ilike(pattern),
+                    HireRequirement.scope.ilike(pattern),
+                    HireRequirement.deliverables.ilike(pattern),
+                    HireRequirement.location.ilike(pattern),
+                    HireRequirement.full_location.ilike(pattern),
+                    HireRequirement.human_resources.ilike(pattern),
+                    HireRequirement.roles.ilike(pattern),
+                    HireRequirement.skills.ilike(pattern),
+                    HireRequirement.tools.ilike(pattern),
+                    HireRequirement.physical_resources.ilike(pattern),
+                    HireRequirement.additional_resources.ilike(pattern),
+                    User.name.ilike(pattern),
+                    User.email.ilike(pattern),
                 )
             )
 
         hires = [
-            build_hire_record(
-                hire,
-                user
-            )
-
-            for hire, user in (
-                query
-                .order_by(
-                    HireRequirement.created_at.desc()
-                )
-                .all()
-            )
+            build_hire_record(hire, user)
+            for hire, user in query.order_by(
+                HireRequirement.created_at.desc()
+            ).all()
         ]
 
-    # =====================================================
-    # DELIVER
-    # =====================================================
-
-    if record_type in {
-        "all",
-        "deliver"
-    }:
-
+    if record_type in {"all", "deliver"}:
         query = (
-            db.session
-            .query(
-                DeliverProposal,
-                User
-            )
-            .join(
-                User,
-                DeliverProposal.user_id
-                == User.id
-            )
+            db.session.query(DeliverProposal, User)
+            .join(User, DeliverProposal.user_id == User.id)
         )
 
         if pattern:
-
             query = query.filter(
                 or_(
-                    DeliverProposal.title.ilike(
-                        pattern
-                    ),
-
-                    DeliverProposal.category.ilike(
-                        pattern
-                    ),
-
-                    DeliverProposal.type.ilike(
-                        pattern
-                    ),
-
-                    DeliverProposal.description.ilike(
-                        pattern
-                    ),
-
-                    DeliverProposal.scope.ilike(
-                        pattern
-                    ),
-
-                    DeliverProposal.deliverables.ilike(
-                        pattern
-                    ),
-
-                    DeliverProposal.country.ilike(
-                        pattern
-                    ),
-
-                    DeliverProposal.city.ilike(
-                        pattern
-                    ),
-
-                    DeliverProposal.full_location.ilike(
-                        pattern
-                    ),
-
-                    DeliverProposal.available_resources.ilike(
-                        pattern
-                    ),
-
-                    DeliverProposal.required_resources.ilike(
-                        pattern
-                    ),
-
-                    DeliverProposal.tools.ilike(
-                        pattern
-                    ),
-
-                    DeliverProposal.physical_resources.ilike(
-                        pattern
-                    ),
-
-                    DeliverProposal.additional_resources.ilike(
-                        pattern
-                    ),
-
-                    User.name.ilike(
-                        pattern
-                    ),
-
-                    User.email.ilike(
-                        pattern
-                    ),
+                    DeliverProposal.title.ilike(pattern),
+                    DeliverProposal.category.ilike(pattern),
+                    DeliverProposal.type.ilike(pattern),
+                    DeliverProposal.description.ilike(pattern),
+                    DeliverProposal.scope.ilike(pattern),
+                    DeliverProposal.deliverables.ilike(pattern),
+                    DeliverProposal.country.ilike(pattern),
+                    DeliverProposal.city.ilike(pattern),
+                    DeliverProposal.full_location.ilike(pattern),
+                    DeliverProposal.available_resources.ilike(pattern),
+                    DeliverProposal.required_resources.ilike(pattern),
+                    DeliverProposal.tools.ilike(pattern),
+                    DeliverProposal.physical_resources.ilike(pattern),
+                    DeliverProposal.additional_resources.ilike(pattern),
+                    User.name.ilike(pattern),
+                    User.email.ilike(pattern),
                 )
             )
 
         delivers = [
-            build_deliver_record(
-                deliver,
-                user
-            )
-
-            for deliver, user in (
-                query
-                .order_by(
-                    DeliverProposal.created_at.desc()
-                )
-                .all()
-            )
+            build_deliver_record(deliver, user)
+            for deliver, user in query.order_by(
+                DeliverProposal.created_at.desc()
+            ).all()
         ]
 
     return hires, delivers
@@ -890,351 +347,144 @@ def get_export_records(
 # ADMIN RECORDS
 # =========================================================
 
-@admin_bp.route(
-    "/records",
-    methods=["GET"]
-)
+@admin_bp.route("/records", methods=["GET"])
 @admin_required
 def get_all_records():
-
     try:
-
-        search = request.args.get(
-            "search",
-            "",
-            type=str
-        ).strip()
-
+        search = request.args.get("search", "", type=str).strip()
         record_type = normalize_record_type(
-            request.args.get(
-                "type",
-                "all",
-                type=str
-            )
+            request.args.get("type", "all", type=str)
         )
-
-        status_filter = request.args.get(
-            "status",
-            "",
-            type=str
-        ).strip()
-
+        status_filter = request.args.get("status", "", type=str).strip()
         page, per_page = parse_page()
 
-        pattern = (
-            f"%{search}%"
-            if search
-            else None
-        )
-
+        pattern = f"%{search}%" if search else None
         hires = []
         delivers = []
 
-        # =================================================
-        # HIRE RECORDS
-        # =================================================
-
-        if record_type in {
-            "all",
-            "hire"
-        }:
-
+        if record_type in {"all", "hire"}:
             query = (
-                db.session
-                .query(
-                    HireRequirement,
-                    User
-                )
-                .join(
-                    User,
-                    HireRequirement.user_id
-                    == User.id
-                )
+                db.session.query(HireRequirement, User)
+                .join(User, HireRequirement.user_id == User.id)
             )
 
             if pattern:
-
                 query = query.filter(
                     or_(
-                        HireRequirement.title.ilike(
-                            pattern
-                        ),
-
-                        HireRequirement.category.ilike(
-                            pattern
-                        ),
-
-                        HireRequirement.type.ilike(
-                            pattern
-                        ),
-
-                        HireRequirement.description.ilike(
-                            pattern
-                        ),
-
-                        HireRequirement.location.ilike(
-                            pattern
-                        ),
-
-                        HireRequirement.full_location.ilike(
-                            pattern
-                        ),
-
-                        HireRequirement.human_resources.ilike(
-                            pattern
-                        ),
-
-                        HireRequirement.roles.ilike(
-                            pattern
-                        ),
-
-                        HireRequirement.skills.ilike(
-                            pattern
-                        ),
-
-                        HireRequirement.tools.ilike(
-                            pattern
-                        ),
-
-                        HireRequirement.physical_resources.ilike(
-                            pattern
-                        ),
-
-                        HireRequirement.additional_resources.ilike(
-                            pattern
-                        ),
-
-                        User.name.ilike(
-                            pattern
-                        ),
-
-                        User.email.ilike(
-                            pattern
-                        ),
+                        HireRequirement.title.ilike(pattern),
+                        HireRequirement.category.ilike(pattern),
+                        HireRequirement.type.ilike(pattern),
+                        HireRequirement.description.ilike(pattern),
+                        HireRequirement.scope.ilike(pattern),
+                        HireRequirement.deliverables.ilike(pattern),
+                        HireRequirement.location.ilike(pattern),
+                        HireRequirement.full_location.ilike(pattern),
+                        HireRequirement.human_resources.ilike(pattern),
+                        HireRequirement.roles.ilike(pattern),
+                        HireRequirement.skills.ilike(pattern),
+                        HireRequirement.tools.ilike(pattern),
+                        HireRequirement.physical_resources.ilike(pattern),
+                        HireRequirement.additional_resources.ilike(pattern),
+                        User.name.ilike(pattern),
+                        User.email.ilike(pattern),
                     )
                 )
 
             if status_filter in ALLOWED_STATUSES:
-
                 query = query.filter(
-                    HireRequirement.status
-                    == status_filter
+                    HireRequirement.status == status_filter
                 )
 
             hires = [
-                build_hire_record(
-                    hire,
-                    user
-                )
-
-                for hire, user in (
-                    query
-                    .order_by(
-                        HireRequirement.created_at.desc()
-                    )
-                    .all()
-                )
+                build_hire_record(hire, user)
+                for hire, user in query.order_by(
+                    HireRequirement.created_at.desc()
+                ).all()
             ]
 
-        # =================================================
-        # DELIVER RECORDS
-        # =================================================
-
-        if record_type in {
-            "all",
-            "deliver"
-        }:
-
+        if record_type in {"all", "deliver"}:
             query = (
-                db.session
-                .query(
-                    DeliverProposal,
-                    User
-                )
-                .join(
-                    User,
-                    DeliverProposal.user_id
-                    == User.id
-                )
+                db.session.query(DeliverProposal, User)
+                .join(User, DeliverProposal.user_id == User.id)
             )
 
             if pattern:
-
                 query = query.filter(
                     or_(
-                        DeliverProposal.title.ilike(
-                            pattern
-                        ),
-
-                        DeliverProposal.category.ilike(
-                            pattern
-                        ),
-
-                        DeliverProposal.type.ilike(
-                            pattern
-                        ),
-
-                        DeliverProposal.description.ilike(
-                            pattern
-                        ),
-
-                        DeliverProposal.country.ilike(
-                            pattern
-                        ),
-
-                        DeliverProposal.city.ilike(
-                            pattern
-                        ),
-
-                        DeliverProposal.full_location.ilike(
-                            pattern
-                        ),
-
-                        DeliverProposal.available_resources.ilike(
-                            pattern
-                        ),
-
-                        DeliverProposal.required_resources.ilike(
-                            pattern
-                        ),
-
-                        DeliverProposal.tools.ilike(
-                            pattern
-                        ),
-
-                        DeliverProposal.physical_resources.ilike(
-                            pattern
-                        ),
-
-                        DeliverProposal.additional_resources.ilike(
-                            pattern
-                        ),
-
-                        User.name.ilike(
-                            pattern
-                        ),
-
-                        User.email.ilike(
-                            pattern
-                        ),
+                        DeliverProposal.title.ilike(pattern),
+                        DeliverProposal.category.ilike(pattern),
+                        DeliverProposal.type.ilike(pattern),
+                        DeliverProposal.description.ilike(pattern),
+                        DeliverProposal.scope.ilike(pattern),
+                        DeliverProposal.deliverables.ilike(pattern),
+                        DeliverProposal.country.ilike(pattern),
+                        DeliverProposal.city.ilike(pattern),
+                        DeliverProposal.full_location.ilike(pattern),
+                        DeliverProposal.available_resources.ilike(pattern),
+                        DeliverProposal.required_resources.ilike(pattern),
+                        DeliverProposal.tools.ilike(pattern),
+                        DeliverProposal.physical_resources.ilike(pattern),
+                        DeliverProposal.additional_resources.ilike(pattern),
+                        User.name.ilike(pattern),
+                        User.email.ilike(pattern),
                     )
                 )
 
             if status_filter in ALLOWED_STATUSES:
-
                 query = query.filter(
-                    DeliverProposal.status
-                    == status_filter
+                    DeliverProposal.status == status_filter
                 )
 
             delivers = [
-                build_deliver_record(
-                    deliver,
-                    user
-                )
-
-                for deliver, user in (
-                    query
-                    .order_by(
-                        DeliverProposal.created_at.desc()
-                    )
-                    .all()
-                )
+                build_deliver_record(deliver, user)
+                for deliver, user in query.order_by(
+                    DeliverProposal.created_at.desc()
+                ).all()
             ]
-
-        # =================================================
-        # COMBINE
-        # =================================================
 
         records = sorted(
             hires + delivers,
-            key=lambda x: x.get(
-                "created_at",
-                ""
-            ),
-            reverse=True
+            key=lambda x: x.get("created_at", ""),
+            reverse=True,
         )
 
         total = len(records)
+        total_pages = max(1, (total + per_page - 1) // per_page)
+        page = min(page, total_pages)
+        start = (page - 1) * per_page
+        paginated = records[start:start + per_page]
 
-        total_pages = max(
-            1,
-            (
-                total
-                + per_page
-                - 1
-            )
-            // per_page
-        )
-
-        page = min(
-            page,
-            total_pages
-        )
-
-        start = (
-            page - 1
-        ) * per_page
-
-        paginated = records[
-            start:start + per_page
-        ]
-
-        # =================================================
-        # STATUS BREAKDOWN
-        # =================================================
-
-        breakdown = {
-            status: 0
-            for status in ALLOWED_STATUSES
-        }
-
+        breakdown = {status: 0 for status in ALLOWED_STATUSES}
         for record in records:
-
-            status = record.get(
-                "status"
-            )
-
+            status = record.get("status")
             if status in breakdown:
-
                 breakdown[status] += 1
 
         return {
             "status": "success",
-
-            "message":
-                "Admin records loaded successfully",
-
+            "message": "Admin records loaded successfully",
             "records": paginated,
-
             "pagination": {
                 "page": page,
                 "per_page": per_page,
                 "total_records": total,
                 "total_pages": total_pages,
-                "has_next":
-                    page < total_pages,
-                "has_previous":
-                    page > 1,
+                "has_next": page < total_pages,
+                "has_previous": page > 1,
             },
-
             "summary": {
                 "total_hires": len(hires),
                 "total_delivers": len(delivers),
                 "total_records": total,
-                "status_breakdown":
-                    breakdown,
+                "status_breakdown": breakdown,
             },
         }, 200
 
     except Exception as e:
-
         db.session.rollback()
-
         return {
             "status": "error",
-            "message":
-                "Failed to load admin records",
+            "message": "Failed to load admin records",
             "error": str(e),
         }, 500
 
@@ -1243,94 +493,45 @@ def get_all_records():
 # ADMIN OVERVIEW
 # =========================================================
 
-@admin_bp.route(
-    "/overview",
-    methods=["GET"]
-)
+@admin_bp.route("/overview", methods=["GET"])
 @admin_required
 def admin_overview():
-
     try:
-
-        total_hires = (
-            HireRequirement.query.count()
-        )
-
-        total_delivers = (
-            DeliverProposal.query.count()
-        )
+        total_hires = HireRequirement.query.count()
+        total_delivers = DeliverProposal.query.count()
 
         hire_status = {
-            status:
-                HireRequirement.query
-                .filter_by(
-                    status=status
-                )
-                .count()
-
+            status: HireRequirement.query.filter_by(status=status).count()
             for status in ALLOWED_STATUSES
         }
 
         deliver_status = {
-            status:
-                DeliverProposal.query
-                .filter_by(
-                    status=status
-                )
-                .count()
-
+            status: DeliverProposal.query.filter_by(status=status).count()
             for status in ALLOWED_STATUSES
         }
 
         return {
-
             "status": "success",
-
-            "message":
-                "Admin overview loaded successfully",
-
+            "message": "Admin overview loaded successfully",
             "overview": {
-
-                "total_users":
-                    User.query.count(),
-
-                "total_hires":
-                    total_hires,
-
-                "total_delivers":
-                    total_delivers,
-
-                "total_records":
-                    total_hires
-                    + total_delivers,
-
-                "total_files":
-                    HireFile.query.count()
-                    + DeliverFile.query.count(),
-
-                "hire_status":
-                    hire_status,
-
-                "deliver_status":
-                    deliver_status,
-
+                "total_users": User.query.count(),
+                "total_hires": total_hires,
+                "total_delivers": total_delivers,
+                "total_records": total_hires + total_delivers,
+                "total_files": HireFile.query.count() + DeliverFile.query.count(),
+                "hire_status": hire_status,
+                "deliver_status": deliver_status,
                 "status_breakdown": {
-                    status:
-                        hire_status[status]
-                        + deliver_status[status]
-
+                    status: hire_status[status] + deliver_status[status]
                     for status in ALLOWED_STATUSES
                 },
             },
-
         }, 200
 
     except Exception as e:
-
         return {
             "status": "error",
-            "message":
-                "Failed to load admin overview",
+            "message": "Failed to load admin overview",
             "error": str(e),
         }, 500
 
@@ -1339,186 +540,224 @@ def admin_overview():
 # ADMIN USERS
 # =========================================================
 
-@admin_bp.route(
-    "/users",
-    methods=["GET"]
-)
+@admin_bp.route("/users", methods=["GET"])
 @admin_required
 def get_users():
-
     try:
-
-        search = request.args.get(
-            "search",
-            "",
-            type=str
-        ).strip()
-
-        pattern = (
-            f"%{search}%"
-            if search
-            else None
-        )
-
+        search = request.args.get("search", "", type=str).strip()
+        pattern = f"%{search}%" if search else None
         query = User.query
 
         if pattern:
-
             query = query.filter(
                 or_(
-                    User.name.ilike(
-                        pattern
-                    ),
-
-                    User.email.ilike(
-                        pattern
-                    ),
-
-                    User.phone.ilike(
-                        pattern
-                    ),
+                    User.name.ilike(pattern),
+                    User.email.ilike(pattern),
+                    User.phone.ilike(pattern),
                 )
             )
 
-        users = (
-            query
-            .order_by(
-                User.id.desc()
-            )
-            .all()
-        )
+        users = query.order_by(User.id.desc()).all()
 
         return {
-
             "status": "success",
-
-            "message":
-                "Users loaded successfully",
-
-            "users": [
-                get_user_info(user)
-                for user in users
-            ],
-
-            "total":
-                len(users),
-
+            "message": "Users loaded successfully",
+            "users": [get_user_info(user) for user in users],
+            "total": len(users),
         }, 200
 
     except Exception as e:
-
         return {
             "status": "error",
-            "message":
-                "Failed to load users",
+            "message": "Failed to load users",
             "error": str(e),
         }, 500
 
 
 # =========================================================
-# UPDATE STATUS
+# SINGLE STATUS UPDATE
 # =========================================================
 
 @admin_bp.route(
     "/records/<string:record_type>/<int:record_id>/status",
-    methods=["PUT"]
+    methods=["PUT"],
 )
 @admin_required
-def update_record_status(
-    record_type,
-    record_id
-):
-
+def update_record_status(record_type, record_id):
     try:
-
-        data = (
-            request.get_json(
-                silent=True
-            )
-            or {}
-        )
-
-        new_status = safe_text(
-            data.get("status")
-        ).strip()
+        data = request.get_json(silent=True) or {}
+        new_status = safe_text(data.get("status")).strip()
 
         if new_status not in ALLOWED_STATUSES:
-
             return {
                 "status": "error",
-                "message":
+                "message": (
                     "Invalid status. Allowed statuses: "
-                    + ", ".join(
-                        ALLOWED_STATUSES
-                    ),
+                    + ", ".join(ALLOWED_STATUSES)
+                ),
             }, 400
 
-        record_type = (
-            record_type.lower()
+        record_type = record_type.lower()
+        model = (
+            HireRequirement
+            if record_type == "hire"
+            else DeliverProposal
+            if record_type == "deliver"
+            else None
         )
 
-        if record_type == "hire":
-
-            model = HireRequirement
-
-        elif record_type == "deliver":
-
-            model = DeliverProposal
-
-        else:
-
+        if model is None:
             return {
                 "status": "error",
-                "message":
-                    "Record type must be hire or deliver",
+                "message": "Record type must be hire or deliver",
             }, 400
 
-        record = (
-            model.query
-            .filter_by(
-                id=record_id
-            )
-            .first()
-        )
+        record = model.query.filter_by(id=record_id).first()
 
         if not record:
-
             return {
                 "status": "error",
-                "message":
-                    "Record not found",
+                "message": "Record not found",
             }, 404
 
+        old_status = safe_text(record.status) or "Pending"
         record.status = new_status
+        db.session.commit()
+
+        return {
+            "status": "success",
+            "message": "Record status updated successfully",
+            "record_type": record_type,
+            "record_id": record.id,
+            "record_key": get_record_key(record_type, record),
+            "old_status": old_status,
+            "status": record.status,
+        }, 200
+
+    except Exception as e:
+        db.session.rollback()
+        return {
+            "status": "error",
+            "message": "Failed to update record status",
+            "error": str(e),
+        }, 500
+
+
+# =========================================================
+# BULK STATUS UPDATE
+# =========================================================
+
+@admin_bp.route("/records/bulk-status", methods=["PUT", "POST"])
+@admin_required
+def bulk_update_status():
+    """
+    Bulk status update.
+
+    Default safety rule:
+    only records currently in from_status are changed.
+    from_status defaults to Pending.
+
+    Examples:
+      - Approve all Pending Hire records.
+      - Approve all Pending Deliver records.
+      - Select specific IDs and change only those that are still Pending.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+
+        record_type = normalize_record_type(data.get("record_type", "all"))
+        new_status = safe_text(data.get("status")).strip()
+        from_status = safe_text(data.get("from_status", "Pending")).strip() or "Pending"
+
+        record_ids = data.get("record_ids")
+
+        if record_type not in {"hire", "deliver"}:
+            return {
+                "status": "error",
+                "message": "record_type must be hire or deliver.",
+            }, 400
+
+        if new_status not in ALLOWED_STATUSES:
+            return {
+                "status": "error",
+                "message": (
+                    "Invalid target status. Allowed statuses: "
+                    + ", ".join(ALLOWED_STATUSES)
+                ),
+            }, 400
+
+        if from_status not in ALLOWED_STATUSES:
+            return {
+                "status": "error",
+                "message": (
+                    "Invalid source status. Allowed statuses: "
+                    + ", ".join(ALLOWED_STATUSES)
+                ),
+            }, 400
+
+        if from_status == new_status:
+            return {
+                "status": "error",
+                "message": "Source and target status cannot be the same.",
+            }, 400
+
+        model = HireRequirement if record_type == "hire" else DeliverProposal
+        query = model.query.filter(model.status == from_status)
+
+        selected_ids = None
+
+        if record_ids is not None:
+            if not isinstance(record_ids, list):
+                return {
+                    "status": "error",
+                    "message": "record_ids must be an array of record IDs.",
+                }, 400
+
+            selected_ids = []
+            for value in record_ids:
+                try:
+                    selected_ids.append(int(value))
+                except (TypeError, ValueError):
+                    continue
+
+            if not selected_ids:
+                return {
+                    "status": "error",
+                    "message": "No valid record IDs were selected.",
+                }, 400
+
+            query = query.filter(model.id.in_(selected_ids))
+
+        records = query.all()
+
+        for record in records:
+            record.status = new_status
 
         db.session.commit()
 
         return {
-
             "status": "success",
-
-            "message":
-                "Record status updated successfully",
-
-            "record_type":
-                record_type,
-
-            "record_id":
-                record.id,
-
-            "status":
-                record.status,
-
+            "message": (
+                f"{len(records)} {record_type.capitalize()} record(s) "
+                f"changed from {from_status} to {new_status}."
+            ),
+            "record_type": record_type,
+            "from_status": from_status,
+            "status": new_status,
+            "updated_count": len(records),
+            "skipped_count": (
+                len(selected_ids) - len(records)
+                if selected_ids is not None
+                else 0
+            ),
+            "record_ids": [record.id for record in records],
         }, 200
 
     except Exception as e:
-
         db.session.rollback()
-
         return {
             "status": "error",
-            "message":
-                "Failed to update record status",
+            "message": "Failed to update records in bulk.",
             "error": str(e),
         }, 500
 
@@ -1526,182 +765,86 @@ def update_record_status(
 # =========================================================
 # DELETE RECORD
 # =========================================================
+# Kept for backward compatibility with the existing admin API.
+# The admin UI can simply avoid exposing this action.
 
 @admin_bp.route(
     "/records/<string:record_type>/<int:record_id>",
-    methods=["DELETE"]
+    methods=["DELETE"],
 )
 @admin_required
-def delete_record(
-    record_type,
-    record_id
-):
-
+def delete_record(record_type, record_id):
     try:
-
-        record_type = (
-            record_type.lower()
-        )
-
+        record_type = record_type.lower()
         physical_files = []
 
-        # =================================================
-        # HIRE
-        # =================================================
-
         if record_type == "hire":
-
-            record = (
-                HireRequirement.query
-                .filter_by(
-                    id=record_id
-                )
-                .first()
-            )
+            record = HireRequirement.query.filter_by(id=record_id).first()
 
             if not record:
-
                 return {
                     "status": "error",
-                    "message":
-                        "Hire record not found",
+                    "message": "Hire record not found",
                 }, 404
 
-            files = (
-                HireFile.query
-                .filter_by(
-                    hire_id=record.id
-                )
-                .all()
-            )
+            files = HireFile.query.filter_by(hire_id=record.id).all()
+            physical_files = [get_file_path(file) for file in files]
 
-            physical_files = [
-                get_file_path(file)
-                for file in files
-            ]
-
-            (
-                HireFile.query
-                .filter_by(
-                    hire_id=record.id
-                )
-                .delete(
-                    synchronize_session=False
-                )
-            )
-
-        # =================================================
-        # DELIVER
-        # =================================================
+            HireFile.query.filter_by(
+                hire_id=record.id
+            ).delete(synchronize_session=False)
 
         elif record_type == "deliver":
-
-            record = (
-                DeliverProposal.query
-                .filter_by(
-                    id=record_id
-                )
-                .first()
-            )
+            record = DeliverProposal.query.filter_by(id=record_id).first()
 
             if not record:
-
                 return {
                     "status": "error",
-                    "message":
-                        "Deliver record not found",
+                    "message": "Deliver record not found",
                 }, 404
 
-            files = (
-                DeliverFile.query
-                .filter_by(
-                    deliver_id=record.id
-                )
-                .all()
-            )
+            files = DeliverFile.query.filter_by(
+                deliver_id=record.id
+            ).all()
 
-            physical_files = [
-                get_file_path(file)
-                for file in files
-            ]
+            physical_files = [get_file_path(file) for file in files]
 
-            (
-                DeliverTeamMember.query
-                .filter_by(
-                    deliver_id=record.id
-                )
-                .delete(
-                    synchronize_session=False
-                )
-            )
+            DeliverTeamMember.query.filter_by(
+                deliver_id=record.id
+            ).delete(synchronize_session=False)
 
-            (
-                DeliverFile.query
-                .filter_by(
-                    deliver_id=record.id
-                )
-                .delete(
-                    synchronize_session=False
-                )
-            )
+            DeliverFile.query.filter_by(
+                deliver_id=record.id
+            ).delete(synchronize_session=False)
 
         else:
-
             return {
                 "status": "error",
-                "message":
-                    "Record type must be hire or deliver",
+                "message": "Record type must be hire or deliver",
             }, 400
 
-        # =================================================
-        # DATABASE DELETE
-        # =================================================
-
         db.session.delete(record)
-
         db.session.commit()
 
-        # =================================================
-        # PHYSICAL FILE DELETE
-        # =================================================
-
         for path in physical_files:
-
             try:
-
-                if (
-                    path
-                    and os.path.isfile(path)
-                ):
+                if path and os.path.isfile(path):
                     os.remove(path)
-
             except Exception:
-
                 pass
 
         return {
-
             "status": "success",
-
-            "message":
-                "Record deleted successfully",
-
-            "record_type":
-                record_type,
-
-            "record_id":
-                record_id,
-
+            "message": "Record deleted successfully",
+            "record_type": record_type,
+            "record_id": record_id,
         }, 200
 
     except Exception as e:
-
         db.session.rollback()
-
         return {
             "status": "error",
-            "message":
-                "Failed to delete record",
+            "message": "Failed to delete record",
             "error": str(e),
         }, 500
 
@@ -1710,634 +853,265 @@ def delete_record(
 # EXCEL STYLING
 # =========================================================
 
-def style_excel_sheet(
-    worksheet
-):
+def style_excel_sheet(worksheet):
+    header_fill = PatternFill(fill_type="solid", fgColor="172033")
+    header_font = Font(bold=True, color="FFFFFF")
 
-    header_fill = PatternFill(
-        fill_type="solid",
-        fgColor="172033"
-    )
-
-    header_font = Font(
-        bold=True,
-        color="FFFFFF"
-    )
-
-    # Header styling
     for cell in worksheet[1]:
-
         cell.fill = header_fill
-
         cell.font = header_font
-
         cell.alignment = Alignment(
             horizontal="center",
             vertical="center",
-            wrap_text=True
+            wrap_text=True,
         )
 
     worksheet.freeze_panes = "A2"
+    worksheet.auto_filter.ref = worksheet.dimensions
 
-    worksheet.auto_filter.ref = (
-        worksheet.dimensions
-    )
-
-    # Body styling
     for row in worksheet.iter_rows():
-
         for cell in row:
-
             cell.alignment = Alignment(
                 vertical="top",
-                wrap_text=True
+                wrap_text=True,
             )
 
-    # Automatic column widths
     for column_cells in worksheet.columns:
-
         max_length = 0
 
         for cell in column_cells:
+            value = "" if cell.value is None else str(cell.value)
+            lengths = [len(line) for line in value.split("\n")]
+            if lengths:
+                max_length = max(max_length, max(lengths))
 
-            value = (
-                ""
-                if cell.value is None
-                else str(cell.value)
-            )
-
-            line_lengths = [
-                len(line)
-                for line in value.split(
-                    "\n"
-                )
-            ]
-
-            if line_lengths:
-
-                max_length = max(
-                    max_length,
-                    max(line_lengths)
-                )
-
-        letter = get_column_letter(
-            column_cells[0].column
-        )
-
-        worksheet.column_dimensions[
-            letter
-        ].width = min(
-            max(
-                max_length + 2,
-                12
-            ),
-            45
+        letter = get_column_letter(column_cells[0].column)
+        worksheet.column_dimensions[letter].width = min(
+            max(max_length + 2, 12),
+            45,
         )
 
 
 # =========================================================
-# SECURE EXCEL FILE TOKEN
+# SECURE EXCEL FILE LINKS
 # =========================================================
 
-def file_link_token(
-    record_type,
-    file_id
-):
-
+def file_link_token(record_type, file_id):
     serializer = URLSafeTimedSerializer(
         current_app.config.get(
             "JWT_SECRET_KEY",
-            "hire_deliver_file_secret"
+            "hire_deliver_file_secret",
         )
     )
 
-    return serializer.dumps(
-        {
-            "record_type":
-                record_type,
-
-            "file_id":
-                int(file_id),
-        }
-    )
+    return serializer.dumps({
+        "record_type": record_type,
+        "file_id": int(file_id),
+    })
 
 
-def make_file_url(
-    record_type,
-    file_id
-):
-
-    token = file_link_token(
-        record_type,
-        file_id
-    )
+def make_file_url(record_type, file_id):
+    token = file_link_token(record_type, file_id)
 
     return (
         f"{request.host_url.rstrip('/')}"
-        f"/api/admin/files/"
-        f"{record_type}/"
-        f"{int(file_id)}"
-        f"/link?token={token}"
+        f"/api/admin/files/{record_type}/{int(file_id)}/link"
+        f"?token={token}"
     )
 
 
 # =========================================================
-# ADD FILE ROWS
+# EXCEL RECORD SHEETS
 # =========================================================
 
-def append_file_rows(
-    sheet,
-    records
-):
+HIRE_EXPORT_HEADERS = [
+    "Record ID",
+    "Record Key",
+    "User ID",
+    "User Name",
+    "User Email",
+    "User Phone",
+    "Country",
+    "Currency",
+    "Requirement Title",
+    "Requirement Type",
+    "Category",
+    "What Do You Need?",
+    "Requirement Scope",
+    "Tasks / Deliverables",
+    "Total Budget",
+    "Processing Type",
+    "Standard / Required Timeline",
+    "Urgent / Optimal Timeline",
+    "Required Human Resources",
+    "Required Roles",
+    "Required Skills & Expertise",
+    "Required Tools / Software",
+    "Physical Resources / Equipment",
+    "Additional Resources Required",
+    "Required City",
+    "Full Location / Address",
+    "Preferred Communication Method",
+    "Notification / Update Period",
+    "Uploaded Requirement Files",
+    "Status",
+    "Created At",
+    "Updated At",
+]
+
+DELIVER_EXPORT_HEADERS = [
+    "Record ID",
+    "Record Key",
+    "User ID",
+    "User Name",
+    "User Email",
+    "User Phone",
+    "Country",
+    "Delivery Title",
+    "Delivery Type",
+    "Delivery Category",
+    "Description / What Can Your Team Provide?",
+    "Delivery Scope",
+    "Deliverables / Task Breakdown",
+    "Currency",
+    "Amount / Delivery Cost",
+    "Included Cost",
+    "Excluded Cost",
+    "Processing Type",
+    "Standard Delivery Timeline",
+    "Urgent / Priority Timeline",
+    "Available Resources",
+    "Required Resources",
+    "Available Tools & Software",
+    "Physical Resources / Equipment",
+    "Additional Resources",
+    "Delivery City",
+    "Full Delivery Location / Address",
+    "Portfolio / Website / Demo Link",
+    "Social Media / Professional Profile Link",
+    "Notification / Update Period",
+    "Additional Notification Details",
+    "Preferred Communication Method",
+    "Communication Details",
+    "Uploaded Supporting Files",
+    "Status",
+    "Created At",
+    "Updated At",
+]
+
+
+def add_hire_sheet(workbook, records):
+    sheet = workbook.create_sheet("Hire Records")
+    sheet.append(HIRE_EXPORT_HEADERS)
 
     for record in records:
-
-        for file in record.get(
-            "files",
-            []
-        ):
-
-            row = (
-                sheet.max_row + 1
-            )
-
-            sheet.cell(
-                row=row,
-                column=1,
-                value=safe_text(
-                    record.get(
-                        "record_type",
-                        ""
-                    )
-                ).capitalize()
-            )
-
-            sheet.cell(
-                row=row,
-                column=2,
-                value=record.get(
-                    "id"
-                )
-            )
-
-            sheet.cell(
-                row=row,
-                column=3,
-                value=file.get(
-                    "id"
-                )
-            )
-
-            sheet.cell(
-                row=row,
-                column=4,
-                value=file.get(
-                    "original_name"
-                )
-            )
-
-            sheet.cell(
-                row=row,
-                column=5,
-                value=file.get(
-                    "file_type"
-                )
-            )
-
-            sheet.cell(
-                row=row,
-                column=6,
-                value=file.get(
-                    "file_size"
-                )
-            )
-
-            sheet.cell(
-                row=row,
-                column=7,
-                value=file.get(
-                    "uploaded_at"
-                )
-            )
-
-            link_cell = sheet.cell(
-                row=row,
-                column=8,
-                value="Open File"
-            )
-
-            link_cell.hyperlink = (
-                make_file_url(
-                    record.get(
-                        "record_type"
-                    ),
-                    file.get(
-                        "id"
-                    )
-                )
-            )
-
-            link_cell.style = "Hyperlink"
-
-
-# =========================================================
-# HIRE EXCEL SHEET
-# =========================================================
-
-def add_hire_sheet(
-    workbook,
-    records
-):
-
-    sheet = workbook.create_sheet(
-        "Hire Records"
-    )
-
-    sheet.append([
-
-        "Record ID",
-        "User ID",
-        "User Name",
-        "User Email",
-        "User Phone",
-        "Country",
-        "Currency",
-
-        "Requirement Title",
-        "Requirement Type",
-        "Category",
-
-        "What Do You Need?",
-        "Requirement Scope",
-        "Tasks / Deliverables",
-
-        "Total Budget",
-        "Processing Type",
-
-        "Standard / Required Timeline",
-        "Urgent / Optimal Timeline",
-
-        "Required Human Resources",
-        "Required Roles",
-        "Required Skills & Expertise",
-        "Required Tools / Software",
-        "Physical Resources / Equipment",
-        "Additional Resources Required",
-
-        "Required City",
-        "Full Location / Address",
-
-        "Preferred Communication Method",
-        "Notification / Update Period",
-
-        "Uploaded Requirement Files",
-
-        "Status",
-        "Created At",
-        "Updated At",
-    ])
-
-    for record in records:
-
-        user = record.get(
-            "user",
-            {}
-        )
-
+        user = record.get("user", {})
         filenames = "\n".join(
-            file.get(
-                "original_name",
-                ""
-            )
-
-            for file in record.get(
-                "files",
-                []
-            )
+            file.get("original_name", "")
+            for file in record.get("files", [])
         )
 
         sheet.append([
-
             record.get("id"),
-
+            record.get("record_key"),
             user.get("id"),
-
             user.get("name"),
-
             user.get("email"),
-
             user.get("phone"),
-
             record.get("country"),
             record.get("currency"),
-
             record.get("title"),
-
             record.get("type"),
-
             record.get("category"),
-
             record.get("description"),
-
             record.get("scope"),
-
             record.get("deliverables"),
-
             record.get("budget"),
-
             record.get("processing"),
-
-            record.get(
-                "standard_timeline"
-            ),
-
-            record.get(
-                "urgent_timeline"
-            ),
-
-            record.get(
-                "human_resources"
-            ),
-
-            record.get(
-                "roles"
-            ),
-
-            record.get(
-                "skills"
-            ),
-
-            record.get(
-                "tools"
-            ),
-
-            record.get(
-                "physical_resources"
-            ),
-
-            record.get(
-                "additional_resources"
-            ),
-
-            record.get(
-                "location"
-            ),
-
-            record.get(
-                "full_location"
-            ),
-
-            record.get(
-                "communication_method"
-            ),
-
-            record.get(
-                "notification_period"
-            ),
-
+            record.get("standard_timeline"),
+            record.get("urgent_timeline"),
+            record.get("human_resources"),
+            record.get("roles"),
+            record.get("skills"),
+            record.get("tools"),
+            record.get("physical_resources"),
+            record.get("additional_resources"),
+            record.get("location"),
+            record.get("full_location"),
+            record.get("communication_method"),
+            record.get("notification_period"),
             filenames,
-
-            record.get(
-                "status"
-            ),
-
-            record.get(
-                "created_at"
-            ),
-
-            record.get(
-                "updated_at"
-            ),
+            record.get("status"),
+            record.get("created_at"),
+            record.get("updated_at"),
         ])
 
-    style_excel_sheet(
-        sheet
-    )
-
+    style_excel_sheet(sheet)
     return sheet
 
 
-# =========================================================
-# DELIVER EXCEL SHEET
-# =========================================================
-
-def add_deliver_sheet(
-    workbook,
-    records
-):
-
-    sheet = workbook.create_sheet(
-        "Deliver Records"
-    )
-
-    sheet.append([
-
-        "Record ID",
-        "User ID",
-        "User Name",
-        "User Email",
-        "User Phone",
-
-        "Country",
-
-        "Delivery Title",
-        "Delivery Type",
-        "Delivery Category",
-
-        "Description / What Can Your Team Provide?",
-        "Delivery Scope",
-        "Deliverables / Task Breakdown",
-
-        "Currency",
-        "Amount / Delivery Cost",
-        "Included Cost",
-        "Excluded Cost",
-
-        "Processing Type",
-
-        "Standard Delivery Timeline",
-        "Urgent / Priority Timeline",
-
-        "Available Resources",
-        "Required Resources",
-        "Available Tools & Software",
-        "Physical Resources / Equipment",
-        "Additional Resources",
-
-        "Delivery City",
-        "Full Delivery Location / Address",
-
-        "Portfolio / Website / Demo Link",
-        "Social Media / Professional Profile Link",
-
-        "Notification / Update Period",
-        "Additional Notification Details",
-
-        "Preferred Communication Method",
-        "Communication Details",
-
-        "Uploaded Supporting Files",
-
-        "Status",
-        "Created At",
-        "Updated At",
-    ])
+def add_deliver_sheet(workbook, records):
+    sheet = workbook.create_sheet("Deliver Records")
+    sheet.append(DELIVER_EXPORT_HEADERS)
 
     for record in records:
-
-        user = record.get(
-            "user",
-            {}
-        )
-
+        user = record.get("user", {})
         filenames = "\n".join(
-            file.get(
-                "original_name",
-                ""
-            )
-
-            for file in record.get(
-                "files",
-                []
-            )
+            file.get("original_name", "")
+            for file in record.get("files", [])
         )
 
         sheet.append([
-
             record.get("id"),
-
+            record.get("record_key"),
             user.get("id"),
-
             user.get("name"),
-
             user.get("email"),
-
             user.get("phone"),
-
             record.get("country"),
-
             record.get("title"),
-
             record.get("type"),
-
             record.get("category"),
-
             record.get("description"),
-
             record.get("scope"),
-
             record.get("deliverables"),
-
             record.get("currency"),
-
             record.get("amount"),
-
             record.get("included_cost"),
-
             record.get("excluded_cost"),
-
             record.get("processing"),
-
-            record.get(
-                "standard_timeline"
-            ),
-
-            record.get(
-                "urgent_timeline"
-            ),
-
-            record.get(
-                "available_resources"
-            ),
-
-            record.get(
-                "required_resources"
-            ),
-
-            record.get(
-                "tools"
-            ),
-
-            record.get(
-                "physical_resources"
-            ),
-
-            record.get(
-                "additional_resources"
-            ),
-
-            record.get(
-                "city"
-            ),
-
-            record.get(
-                "full_location"
-            ),
-
-            record.get(
-                "portfolio"
-            ),
-
-            record.get(
-                "social_media_link"
-            ),
-
-            record.get(
-                "notification_period"
-            ),
-
-            record.get(
-                "notification_details"
-            ),
-
-            record.get(
-                "communication_method"
-            ),
-
-            record.get(
-                "communication_details"
-            ),
-
+            record.get("standard_timeline"),
+            record.get("urgent_timeline"),
+            record.get("available_resources"),
+            record.get("required_resources"),
+            record.get("tools"),
+            record.get("physical_resources"),
+            record.get("additional_resources"),
+            record.get("city"),
+            record.get("full_location"),
+            record.get("portfolio"),
+            record.get("social_media_link"),
+            record.get("notification_period"),
+            record.get("notification_details"),
+            record.get("communication_method"),
+            record.get("communication_details"),
             filenames,
-
-            record.get(
-                "status"
-            ),
-
-            record.get(
-                "created_at"
-            ),
-
-            record.get(
-                "updated_at"
-            ),
+            record.get("status"),
+            record.get("created_at"),
+            record.get("updated_at"),
         ])
 
-    style_excel_sheet(
-        sheet
-    )
-
+    style_excel_sheet(sheet)
     return sheet
 
 
-# =========================================================
-# DELIVER TEAM MEMBERS EXCEL SHEET
-# =========================================================
-
-def add_team_sheet(
-    workbook,
-    records
-):
-
-    sheet = workbook.create_sheet(
-        "Deliver Team Members"
-    )
+def add_team_sheet(workbook, records):
+    sheet = workbook.create_sheet("Deliver Team Members")
 
     sheet.append([
-
         "Deliver Record ID",
+        "Deliver Record Key",
         "Member ID",
-
         "Member Name",
         "Role",
         "Skills / Expertise",
@@ -2347,71 +1121,62 @@ def add_team_sheet(
     ])
 
     for record in records:
-
-        for member in record.get(
-            "team_members",
-            []
-        ):
-
+        for member in record.get("team_members", []):
             sheet.append([
-
-                record.get(
-                    "id"
-                ),
-
-                member.get(
-                    "id"
-                ),
-
-                member.get(
-                    "name"
-                ),
-
-                member.get(
-                    "role"
-                ),
-
-                member.get(
-                    "skills"
-                ),
-
-                member.get(
-                    "experience"
-                ),
-
-                member.get(
-                    "profile"
-                ),
-
-                member.get(
-                    "similar_experience"
-                ),
+                record.get("id"),
+                record.get("record_key"),
+                member.get("id"),
+                member.get("name"),
+                member.get("role"),
+                member.get("skills"),
+                member.get("experience"),
+                member.get("profile"),
+                member.get("similar_experience"),
             ])
 
-    style_excel_sheet(
-        sheet
-    )
-
+    style_excel_sheet(sheet)
     return sheet
 
 
-# =========================================================
-# UPLOADED FILES EXCEL SHEET
-# =========================================================
+def append_file_rows(sheet, records):
+    for record in records:
+        for file in record.get("files", []):
+            row = sheet.max_row + 1
 
-def add_files_sheet(
-    workbook,
-    records
-):
+            values = [
+                safe_text(record.get("record_type")).capitalize(),
+                record.get("id"),
+                record.get("record_key"),
+                file.get("id"),
+                file.get("original_name"),
+                file.get("file_type"),
+                file.get("file_size"),
+                file.get("uploaded_at"),
+            ]
 
-    sheet = workbook.create_sheet(
-        "Uploaded Files"
-    )
+            for column, value in enumerate(values, start=1):
+                sheet.cell(row=row, column=column, value=value)
+
+            link_cell = sheet.cell(
+                row=row,
+                column=9,
+                value="Open File",
+            )
+
+            link_cell.hyperlink = make_file_url(
+                record.get("record_type"),
+                file.get("id"),
+            )
+            link_cell.style = "Hyperlink"
+
+
+def add_files_sheet(workbook, records):
+    sheet = workbook.create_sheet("Uploaded Files")
 
     sheet.append([
-
         "Record Type",
         "Record ID",
+        "Record Key",
         "File ID",
         "Original Filename",
         "File Type",
@@ -2420,15 +1185,8 @@ def add_files_sheet(
         "Open File",
     ])
 
-    append_file_rows(
-        sheet,
-        records
-    )
-
-    style_excel_sheet(
-        sheet
-    )
-
+    append_file_rows(sheet, records)
+    style_excel_sheet(sheet)
     return sheet
 
 
@@ -2436,174 +1194,56 @@ def add_files_sheet(
 # EXCEL EXPORT
 # =========================================================
 
-@admin_bp.route(
-    "/records/export",
-    methods=["GET"]
-)
+@admin_bp.route("/records/export", methods=["GET"])
 @admin_required
 def export_records():
-
     try:
-
         record_type = normalize_record_type(
-            request.args.get(
-                "type",
-                "all",
-                type=str
-            )
+            request.args.get("type", "all", type=str)
         )
+        search = request.args.get("search", "", type=str).strip()
 
-        search = request.args.get(
-            "search",
-            "",
-            type=str
-        ).strip()
+        hires, delivers = get_export_records(record_type, search)
 
-        # =================================================
-        # HIRE EXPORT
-        # =================================================
+        workbook = Workbook()
+        workbook.remove(workbook.active)
 
         if record_type == "hire":
-
-            hires, _ = get_export_records(
-                "hire",
-                search
-            )
-
-            workbook = Workbook()
-
-            # Remove default Sheet
-            default_sheet = workbook.active
-            workbook.remove(
-                default_sheet
-            )
-
-            add_hire_sheet(
-                workbook,
-                hires
-            )
-
-            add_files_sheet(
-                workbook,
-                hires
-            )
-
-            filename = (
-                "Hire_Records.xlsx"
-            )
-
-        # =================================================
-        # DELIVER EXPORT
-        # =================================================
+            add_hire_sheet(workbook, hires)
+            add_files_sheet(workbook, hires)
+            filename = "Hire_Records.xlsx"
 
         elif record_type == "deliver":
-
-            _, delivers = get_export_records(
-                "deliver",
-                search
-            )
-
-            workbook = Workbook()
-
-            default_sheet = workbook.active
-            workbook.remove(
-                default_sheet
-            )
-
-            add_deliver_sheet(
-                workbook,
-                delivers
-            )
-
-            add_team_sheet(
-                workbook,
-                delivers
-            )
-
-            add_files_sheet(
-                workbook,
-                delivers
-            )
-
-            filename = (
-                "Deliver_Records.xlsx"
-            )
-
-        # =================================================
-        # ALL EXPORT
-        # =================================================
+            add_deliver_sheet(workbook, delivers)
+            add_team_sheet(workbook, delivers)
+            add_files_sheet(workbook, delivers)
+            filename = "Deliver_Records.xlsx"
 
         else:
-
-            hires, delivers = get_export_records(
-                "all",
-                search
-            )
-
-            workbook = Workbook()
-
-            default_sheet = workbook.active
-            workbook.remove(
-                default_sheet
-            )
-
-            add_hire_sheet(
-                workbook,
-                hires
-            )
-
-            add_deliver_sheet(
-                workbook,
-                delivers
-            )
-
-            add_team_sheet(
-                workbook,
-                delivers
-            )
-
-            add_files_sheet(
-                workbook,
-                hires + delivers
-            )
-
-            filename = (
-                "HireDeliver_Records.xlsx"
-            )
-
-        # =================================================
-        # SAVE WORKBOOK
-        # =================================================
+            add_hire_sheet(workbook, hires)
+            add_deliver_sheet(workbook, delivers)
+            add_team_sheet(workbook, delivers)
+            add_files_sheet(workbook, hires + delivers)
+            filename = "HireDeliver_Records.xlsx"
 
         output = io.BytesIO()
-
-        workbook.save(
-            output
-        )
-
+        workbook.save(output)
         output.seek(0)
 
         return send_file(
-
             output,
-
             as_attachment=True,
-
             download_name=filename,
-
             mimetype=(
-                "application/"
-                "vnd.openxmlformats-officedocument."
+                "application/vnd.openxmlformats-officedocument."
                 "spreadsheetml.sheet"
             ),
         )
 
     except Exception as e:
-
         return {
             "status": "error",
-            "message":
-                "Failed to export records",
+            "message": "Failed to export records",
             "error": str(e),
         }, 500
 
@@ -2612,236 +1252,96 @@ def export_records():
 # CSV EXPORT
 # =========================================================
 
-@admin_bp.route(
-    "/records/export/csv",
-    methods=["GET"]
-)
+@admin_bp.route("/records/export/csv", methods=["GET"])
 @admin_required
 def export_records_csv():
-
     try:
-
         record_type = normalize_record_type(
-            request.args.get(
-                "type",
-                "all",
-                type=str
-            )
+            request.args.get("type", "all", type=str)
         )
+        search = request.args.get("search", "", type=str).strip()
 
-        search = request.args.get(
-            "search",
-            "",
-            type=str
-        ).strip()
-
-        hires, delivers = (
-            get_export_records(
-                record_type,
-                search
-            )
-        )
-
+        hires, delivers = get_export_records(record_type, search)
         records = sorted(
             hires + delivers,
-            key=lambda x:
-                x.get(
-                    "created_at",
-                    ""
-                ),
-            reverse=True
+            key=lambda x: x.get("created_at", ""),
+            reverse=True,
         )
 
         output = io.StringIO()
-
-        writer = csv.writer(
-            output
-        )
+        writer = csv.writer(output)
 
         writer.writerow([
-
             "Record ID",
+            "Record Key",
             "Record Type",
-
             "User ID",
             "User Name",
             "User Email",
             "User Phone",
-
             "Title",
             "Type",
             "Category",
-
             "Description",
             "Scope",
             "Deliverables",
-
             "Budget / Amount",
             "Currency",
-
             "Processing",
-
             "Standard Timeline",
             "Urgent Timeline",
-
             "Location",
             "Full Location",
-
             "Status",
             "Created At",
             "Updated At",
         ])
 
         for record in records:
+            user = record.get("user", {})
+            is_hire = record.get("record_type") == "hire"
 
-            user = record.get(
-                "user",
-                {}
-            )
-
-            if (
-                record.get(
-                    "record_type"
-                )
-                == "hire"
-            ):
-
-                amount = record.get(
-                    "budget"
-                )
-
-                currency = "PKR"
-
-                location = record.get(
-                    "location"
-                )
-
-            else:
-
-                amount = record.get(
-                    "amount"
-                )
-
-                currency = record.get(
-                    "currency"
-                )
-
-                location = record.get(
-                    "city"
-                )
+            amount = record.get("budget") if is_hire else record.get("amount")
+            currency = record.get("currency") if not is_hire else record.get("currency")
+            location = record.get("location") if is_hire else record.get("city")
 
             writer.writerow([
-
-                record.get(
-                    "id"
-                ),
-
-                record.get(
-                    "record_type"
-                ),
-
-                user.get(
-                    "id"
-                ),
-
-                user.get(
-                    "name"
-                ),
-
-                user.get(
-                    "email"
-                ),
-
-                user.get(
-                    "phone"
-                ),
-
-                record.get(
-                    "title"
-                ),
-
-                record.get(
-                    "type"
-                ),
-
-                record.get(
-                    "category"
-                ),
-
-                record.get(
-                    "description"
-                ),
-
-                record.get(
-                    "scope"
-                ),
-
-                record.get(
-                    "deliverables"
-                ),
-
+                record.get("id"),
+                record.get("record_key"),
+                record.get("record_type"),
+                user.get("id"),
+                user.get("name"),
+                user.get("email"),
+                user.get("phone"),
+                record.get("title"),
+                record.get("type"),
+                record.get("category"),
+                record.get("description"),
+                record.get("scope"),
+                record.get("deliverables"),
                 amount,
-
                 currency,
-
-                record.get(
-                    "processing"
-                ),
-
-                record.get(
-                    "standard_timeline"
-                ),
-
-                record.get(
-                    "urgent_timeline"
-                ),
-
+                record.get("processing"),
+                record.get("standard_timeline"),
+                record.get("urgent_timeline"),
                 location,
-
-                record.get(
-                    "full_location"
-                ),
-
-                record.get(
-                    "status"
-                ),
-
-                record.get(
-                    "created_at"
-                ),
-
-                record.get(
-                    "updated_at"
-                ),
+                record.get("full_location"),
+                record.get("status"),
+                record.get("created_at"),
+                record.get("updated_at"),
             ])
 
         return send_file(
-
-            io.BytesIO(
-                output
-                .getvalue()
-                .encode(
-                    "utf-8-sig"
-                )
-            ),
-
+            io.BytesIO(output.getvalue().encode("utf-8-sig")),
             as_attachment=True,
-
-            download_name=(
-                "HireDeliver_Records.csv"
-            ),
-
-            mimetype=(
-                "text/csv; charset=utf-8"
-            ),
+            download_name="HireDeliver_Records.csv",
+            mimetype="text/csv; charset=utf-8",
         )
 
     except Exception as e:
-
         return {
             "status": "error",
-            "message":
-                "Failed to export CSV",
+            "message": "Failed to export CSV",
             "error": str(e),
         }, 500
 
@@ -2850,284 +1350,529 @@ def export_records_csv():
 # ADMIN FILE OPENING
 # =========================================================
 
-def send_admin_file(
-    file_record
-):
-
+def send_admin_file(file_record):
     if not file_record:
-
         return {
             "status": "error",
-            "message":
-                "File not found",
+            "message": "File not found",
         }, 404
 
-    file_path = get_file_path(
-        file_record
-    )
+    file_path = get_file_path(file_record)
 
     if not file_path:
-
         return {
             "status": "error",
-            "message":
-                "Invalid file location",
+            "message": "Invalid file location",
         }, 403
 
-    if not os.path.isfile(
-        file_path
-    ):
-
+    if not os.path.isfile(file_path):
         return {
             "status": "error",
-            "message":
-                "Physical file not found",
+            "message": "Physical file not found",
         }, 404
 
-    mimetype = safe_text(
-        getattr(
-            file_record,
-            "file_type",
-            ""
-        )
-    ) or None
+    mimetype = safe_text(getattr(file_record, "file_type", "")) or None
 
     return send_file(
-
         file_path,
-
         as_attachment=False,
-
-        download_name=(
-            safe_text(
-                file_record.original_name
-            )
-            or "file"
-        ),
-
+        download_name=safe_text(file_record.original_name) or "file",
         mimetype=mimetype,
     )
 
 
-# =========================================================
-# ADMIN PROTECTED HIRE FILE
-# =========================================================
-
-@admin_bp.route(
-    "/files/hire/<int:file_id>",
-    methods=["GET"]
-)
+@admin_bp.route("/files/hire/<int:file_id>", methods=["GET"])
 @admin_required
-def open_hire_file(
-    file_id
-):
-
-    file_record = (
-        HireFile.query
-        .filter_by(
-            id=file_id
-        )
-        .first()
-    )
-
-    return send_admin_file(
-        file_record
-    )
+def open_hire_file(file_id):
+    file_record = HireFile.query.filter_by(id=file_id).first()
+    return send_admin_file(file_record)
 
 
-# =========================================================
-# ADMIN PROTECTED DELIVER FILE
-# =========================================================
-
-@admin_bp.route(
-    "/files/deliver/<int:file_id>",
-    methods=["GET"]
-)
+@admin_bp.route("/files/deliver/<int:file_id>", methods=["GET"])
 @admin_required
-def open_deliver_file(
-    file_id
-):
-
-    file_record = (
-        DeliverFile.query
-        .filter_by(
-            id=file_id
-        )
-        .first()
-    )
-
-    return send_admin_file(
-        file_record
-    )
+def open_deliver_file(file_id):
+    file_record = DeliverFile.query.filter_by(id=file_id).first()
+    return send_admin_file(file_record)
 
 
-# =========================================================
-# EXCEL SIGNED HIRE FILE LINK
-# =========================================================
-
-@admin_bp.route(
-    "/files/hire/<int:file_id>/link",
-    methods=["GET"]
-)
-def open_hire_file_from_excel(
-    file_id
-):
-
-    token = request.args.get(
-        "token",
-        "",
-        type=str
-    )
+def validate_file_token(record_type, file_id):
+    token = request.args.get("token", "", type=str)
 
     serializer = URLSafeTimedSerializer(
         current_app.config.get(
             "JWT_SECRET_KEY",
-            "hire_deliver_file_secret"
+            "hire_deliver_file_secret",
         )
     )
 
     try:
+        payload = serializer.loads(token, max_age=FILE_LINK_MAX_AGE)
 
-        payload = serializer.loads(
-            token,
-            max_age=FILE_LINK_MAX_AGE
-        )
+        if payload.get("record_type") != record_type:
+            raise BadSignature("Invalid file token")
 
-        if (
-            payload.get(
-                "record_type"
-            )
-            != "hire"
-        ):
-
-            raise BadSignature(
-                "Invalid file token"
-            )
-
-        if int(
-            payload.get(
-                "file_id"
-            )
-        ) != int(file_id):
-
-            raise BadSignature(
-                "Invalid file token"
-            )
+        if int(payload.get("file_id")) != int(file_id):
+            raise BadSignature("Invalid file token")
 
     except SignatureExpired:
-
         return {
             "status": "error",
-            "message":
-                "File link has expired. "
-                "Export a new Excel file.",
+            "message": (
+                "File link has expired. Export a new Excel file."
+            ),
         }, 401
 
     except Exception:
-
         return {
             "status": "error",
-            "message":
-                "Invalid file link.",
+            "message": "Invalid file link.",
         }, 401
 
-    file_record = (
-        HireFile.query
-        .filter_by(
-            id=file_id
-        )
-        .first()
-    )
+    return None
 
-    return send_admin_file(
-        file_record
-    )
+
+@admin_bp.route("/files/hire/<int:file_id>/link", methods=["GET"])
+def open_hire_file_from_excel(file_id):
+    error = validate_file_token("hire", file_id)
+    if error:
+        return error
+
+    file_record = HireFile.query.filter_by(id=file_id).first()
+    return send_admin_file(file_record)
+
+
+@admin_bp.route("/files/deliver/<int:file_id>/link", methods=["GET"])
+def open_deliver_file_from_excel(file_id):
+    error = validate_file_token("deliver", file_id)
+    if error:
+        return error
+
+    file_record = DeliverFile.query.filter_by(id=file_id).first()
+    return send_admin_file(file_record)
 
 
 # =========================================================
-# EXCEL SIGNED DELIVER FILE LINK
+# NEW STATUS-UPDATE EXCEL HELPERS
+# =========================================================
+
+STATUS_IMPORT_HEADERS = [
+    "Record Type",
+    "Record ID",
+    "Record Key",
+    "Status",
+]
+
+
+def normalize_import_header(value):
+    return " ".join(
+        safe_text(value)
+        .replace("\n", " ")
+        .strip()
+        .lower()
+        .split()
+    )
+
+
+def spreadsheet_row_to_dict(headers, values):
+    result = {}
+
+    for index, header in enumerate(headers):
+        if not safe_text(header).strip():
+            continue
+
+        result[normalize_import_header(header)] = (
+            values[index] if index < len(values) else ""
+        )
+
+    return result
+
+
+def import_value(row, header, default=""):
+    return row.get(
+        normalize_import_header(header),
+        default,
+    )
+
+
+def read_status_rows_from_csv(file_storage):
+    raw = file_storage.read()
+
+    if isinstance(raw, bytes):
+        text = raw.decode("utf-8-sig", errors="replace")
+    else:
+        text = safe_text(raw)
+
+    reader = csv.reader(io.StringIO(text))
+    rows = list(reader)
+
+    if not rows:
+        return []
+
+    headers = rows[0]
+    result = []
+
+    for row_number, values in enumerate(rows[1:], start=2):
+        if not any(safe_text(v).strip() for v in values):
+            continue
+
+        result.append(
+            (
+                row_number,
+                spreadsheet_row_to_dict(headers, values),
+            )
+        )
+
+    return result
+
+
+def read_status_rows_from_excel(file_storage):
+    workbook = load_workbook(
+        file_storage,
+        read_only=True,
+        data_only=True,
+    )
+
+    try:
+        result = []
+
+        preferred_sheets = [
+            name
+            for name in ("Hire Records", "Deliver Records")
+            if name in workbook.sheetnames
+        ]
+
+        sheet_names = preferred_sheets or workbook.sheetnames
+
+        for sheet_name in sheet_names:
+            worksheet = workbook[sheet_name]
+            iterator = worksheet.iter_rows(values_only=True)
+
+            try:
+                headers = list(next(iterator))
+            except StopIteration:
+                continue
+
+            for row_number, values in enumerate(iterator, start=2):
+                values = list(values)
+
+                if not any(safe_text(v).strip() for v in values):
+                    continue
+
+                row = spreadsheet_row_to_dict(headers, values)
+
+                # The export workbook already contains Record Type.
+                # If it is missing, infer it from the sheet name.
+                if not import_value(row, "Record Type"):
+                    row[
+                        normalize_import_header("Record Type")
+                    ] = (
+                        "hire"
+                        if sheet_name == "Hire Records"
+                        else "deliver"
+                    )
+
+                result.append((row_number, row))
+
+        return result
+
+    finally:
+        workbook.close()
+
+
+def validate_status_import_row(row, row_number):
+    record_type = normalize_record_type(
+        import_value(row, "Record Type")
+    )
+
+    if record_type not in {"hire", "deliver"}:
+        return None, None, None, (
+            f"Row {row_number}: Record Type must be Hire or Deliver."
+        )
+
+    record_id_raw = import_value(row, "Record ID")
+
+    try:
+        record_id = int(record_id_raw)
+    except (TypeError, ValueError):
+        return None, None, None, (
+            f"Row {row_number}: Record ID must be a valid number."
+        )
+
+    record_key = safe_text(
+        import_value(row, "Record Key")
+    ).strip()
+
+    if not record_key:
+        return None, None, None, (
+            f"Row {row_number}: Record Key is required."
+        )
+
+    new_status = safe_text(
+        import_value(row, "Status")
+    ).strip()
+
+    if new_status not in ALLOWED_STATUSES:
+        return None, None, None, (
+            f"Row {row_number}: invalid Status '{new_status}'. "
+            f"Allowed values: {', '.join(ALLOWED_STATUSES)}."
+        )
+
+    return record_type, record_id, record_key, new_status
+
+
+def update_status_from_import_row(row, row_number):
+    record_type, record_id, record_key, new_status_or_error = (
+        validate_status_import_row(row, row_number)
+    )
+
+    if record_type is None:
+        return {
+            "updated": False,
+            "skipped": True,
+            "message": new_status_or_error,
+        }
+
+    new_status = new_status_or_error
+    model = HireRequirement if record_type == "hire" else DeliverProposal
+
+    record = model.query.filter_by(id=record_id).first()
+
+    if not record:
+        return {
+            "updated": False,
+            "skipped": True,
+            "message": (
+                f"Row {row_number}: {record_type.capitalize()} "
+                f"record ID {record_id} was not found."
+            ),
+        }
+
+    actual_key = get_record_key(record_type, record)
+
+    if actual_key != record_key:
+        return {
+            "updated": False,
+            "skipped": True,
+            "message": (
+                f"Row {row_number}: Record Key mismatch for "
+                f"{record_type.capitalize()} ID {record_id}. "
+                f"Expected '{actual_key}', received '{record_key}'."
+            ),
+        }
+
+    old_status = safe_text(record.status) or "Pending"
+
+    # Safety rule:
+    # Excel import never re-processes a record that has already moved
+    # away from Pending. This prevents an old exported workbook from
+    # accidentally changing Approved/In Progress/Completed/Rejected rows.
+    if old_status != "Pending":
+        return {
+            "updated": False,
+            "skipped": True,
+            "message": (
+                f"Row {row_number}: record {record_key} is already "
+                f"'{old_status}' and was skipped."
+            ),
+        }
+
+    if old_status == new_status:
+        return {
+            "updated": False,
+            "skipped": True,
+            "message": (
+                f"Row {row_number}: record {record_key} is already "
+                f"'{new_status}'."
+            ),
+        }
+
+    record.status = new_status
+
+    return {
+        "updated": True,
+        "skipped": False,
+        "message": (
+            f"Row {row_number}: {record_key} changed "
+            f"from {old_status} to {new_status}."
+        ),
+    }
+
+
+# =========================================================
+# STATUS IMPORT TEMPLATE
 # =========================================================
 
 @admin_bp.route(
-    "/files/deliver/<int:file_id>/link",
-    methods=["GET"]
+    "/records/status-import/template",
+    methods=["GET"],
 )
-def open_deliver_file_from_excel(
-    file_id
-):
+@admin_required
+def download_status_import_template():
+    """
+    Blank template for bulk status changes.
 
-    token = request.args.get(
-        "token",
-        "",
-        type=str
-    )
+    Admin only needs:
+      Record Type
+      Record ID
+      Record Key
+      Status
 
-    serializer = URLSafeTimedSerializer(
-        current_app.config.get(
-            "JWT_SECRET_KEY",
-            "hire_deliver_file_secret"
-        )
-    )
-
+    Record ID + Record Key together protect against changing
+    the wrong record because of a title or row mismatch.
+    """
     try:
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "Status Updates"
 
-        payload = serializer.loads(
-            token,
-            max_age=FILE_LINK_MAX_AGE
+        sheet.append(STATUS_IMPORT_HEADERS)
+        style_excel_sheet(sheet)
+
+        # Add examples/instructions in separate rows.
+        sheet.append([
+            "hire",
+            "1",
+            "HIRE-1",
+            "Approved",
+        ])
+
+        sheet.append([
+            "deliver",
+            "1",
+            "DELIVER-1",
+            "Rejected",
+        ])
+
+        for row in sheet.iter_rows(min_row=2):
+            for cell in row:
+                cell.alignment = Alignment(
+                    vertical="top",
+                    wrap_text=True,
+                )
+
+        output = io.BytesIO()
+        workbook.save(output)
+        output.seek(0)
+
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name="Admin_Status_Update_Template.xlsx",
+            mimetype=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
         )
 
-        if (
-            payload.get(
-                "record_type"
-            )
-            != "deliver"
-        ):
-
-            raise BadSignature(
-                "Invalid file token"
-            )
-
-        if int(
-            payload.get(
-                "file_id"
-            )
-        ) != int(file_id):
-
-            raise BadSignature(
-                "Invalid file token"
-            )
-
-    except SignatureExpired:
-
+    except Exception as e:
         return {
             "status": "error",
-            "message":
-                "File link has expired. "
-                "Export a new Excel file.",
-        }, 401
+            "message": "Failed to generate status update template.",
+            "error": str(e),
+        }, 500
 
-    except Exception:
-
-        return {
-            "status": "error",
-            "message":
-                "Invalid file link.",
-        }, 401
-
-    file_record = (
-        DeliverFile.query
-        .filter_by(
-            id=file_id
-        )
-        .first()
-    )
-
-    return send_admin_file(
-        file_record
-    )
 
 # =========================================================
-# EXCEL / CSV IMPORT HELPERS
+# STATUS IMPORT
+# =========================================================
+
+@admin_bp.route(
+    "/records/status-import",
+    methods=["POST"],
+)
+@admin_required
+def import_status_updates():
+    """
+    Apply status changes from an Excel/CSV file.
+
+    Safe behavior:
+      - Identifies records by Record ID + Record Key.
+      - Only Pending records can be changed by this import.
+      - Existing Approved/In Progress/Completed/Rejected records
+        are skipped and are never overwritten.
+      - This is intentionally separate from the existing
+        /records/import endpoint, which creates new records.
+    """
+    try:
+        uploaded_file = request.files.get("file")
+
+        if not uploaded_file or not uploaded_file.filename:
+            return {
+                "status": "error",
+                "message": "Please select an Excel or CSV file.",
+            }, 400
+
+        filename = safe_text(uploaded_file.filename).lower()
+        extension = os.path.splitext(filename)[1]
+
+        if extension not in {".xlsx", ".xlsm", ".csv"}:
+            return {
+                "status": "error",
+                "message": "Only .xlsx, .xlsm and .csv files are supported.",
+            }, 400
+
+        if extension == ".csv":
+            rows = read_status_rows_from_csv(uploaded_file)
+        else:
+            rows = read_status_rows_from_excel(uploaded_file)
+
+        if not rows:
+            return {
+                "status": "error",
+                "message": "The uploaded file contains no data rows.",
+            }, 400
+
+        updated = 0
+        skipped = 0
+        errors = []
+        updated_records = []
+
+        for row_number, row in rows:
+            try:
+                result = update_status_from_import_row(
+                    row,
+                    row_number,
+                )
+
+                if result["updated"]:
+                    updated += 1
+                    updated_records.append(result["message"])
+                else:
+                    skipped += 1
+                    errors.append(result["message"])
+
+            except Exception as row_error:
+                skipped += 1
+                errors.append(
+                    f"Row {row_number}: {safe_text(row_error)}"
+                )
+
+        db.session.commit()
+
+        return {
+            "status": "success",
+            "message": (
+                f"Status import completed. "
+                f"{updated} record(s) updated and "
+                f"{skipped} row(s) skipped."
+            ),
+            "updated_count": updated,
+            "skipped_count": skipped,
+            "updated_records": updated_records,
+            "errors": errors,
+        }, 200
+
+    except Exception as e:
+        db.session.rollback()
+        return {
+            "status": "error",
+            "message": "Failed to import status updates.",
+            "error": str(e),
+        }, 500
+
+
+# =========================================================
+# EXISTING NEW-RECORD IMPORT
 # =========================================================
 
 IMPORT_HIRE_HEADERS = [
@@ -3202,44 +1947,11 @@ IMPORT_TEAM_HEADERS = [
 ]
 
 
-def normalize_import_header(value):
-    """Normalize spreadsheet headers for reliable matching."""
-    return " ".join(
-        safe_text(value)
-        .replace("\n", " ")
-        .strip()
-        .lower()
-        .split()
-    )
-
-
 def normalize_import_key(value):
-    """Normalize an optional import key."""
     return safe_text(value).strip().lower()
 
 
-def spreadsheet_row_to_dict(headers, values):
-    """Convert one Excel/CSV row into a header/value dictionary."""
-    result = {}
-    for index, header in enumerate(headers):
-        if not safe_text(header).strip():
-            continue
-        result[normalize_import_header(header)] = (
-            values[index] if index < len(values) else ""
-        )
-    return result
-
-
-def import_value(row, header, default=""):
-    """Read a spreadsheet value by human-readable header."""
-    return row.get(
-        normalize_import_header(header),
-        default
-    )
-
-
 def import_number(value):
-    """Convert spreadsheet numeric text into a float when possible."""
     if value is None:
         return None
 
@@ -3247,10 +1959,10 @@ def import_number(value):
         return float(value)
 
     text_value = safe_text(value).strip()
+
     if not text_value:
         return None
 
-    # Allow common currency formatting such as PKR 100,000 or $1000.
     cleaned = (
         text_value
         .replace(",", "")
@@ -3267,22 +1979,19 @@ def import_number(value):
 
 
 def find_import_user(email):
-    """Find an existing registered user by email only."""
     email = safe_text(email).strip().lower()
+
     if not email:
         return None
 
     return (
         User.query
-        .filter(
-            func.lower(User.email) == email
-        )
+        .filter(func.lower(User.email) == email)
         .first()
     )
 
 
 def validate_import_user(row, row_number):
-    """Resolve ownership from the registered user's email."""
     email = safe_text(
         import_value(row, "User Email")
     ).strip().lower()
@@ -3291,6 +2000,7 @@ def validate_import_user(row, row_number):
         return None, f"Row {row_number}: User Email is required."
 
     user = find_import_user(email)
+
     if not user:
         return None, (
             f"Row {row_number}: no registered user was found for "
@@ -3301,8 +2011,8 @@ def validate_import_user(row, row_number):
 
 
 def get_import_rows_from_csv(file_storage):
-    """Read a CSV upload as normalized row dictionaries."""
     raw = file_storage.read()
+
     if isinstance(raw, bytes):
         text = raw.decode("utf-8-sig", errors="replace")
     else:
@@ -3316,18 +2026,22 @@ def get_import_rows_from_csv(file_storage):
 
     headers = rows[0]
     data_rows = []
+
     for row_number, values in enumerate(rows[1:], start=2):
         if not any(safe_text(v).strip() for v in values):
             continue
+
         data_rows.append(
-            (row_number, spreadsheet_row_to_dict(headers, values))
+            (
+                row_number,
+                spreadsheet_row_to_dict(headers, values),
+            )
         )
 
     return data_rows, []
 
 
 def get_import_rows_from_excel(file_storage, preferred_sheet=None):
-    """Read the first relevant Excel sheet as normalized row dictionaries."""
     workbook = load_workbook(
         file_storage,
         read_only=True,
@@ -3343,36 +2057,44 @@ def get_import_rows_from_excel(file_storage, preferred_sheet=None):
             worksheet = workbook[workbook.sheetnames[0]]
 
         iterator = worksheet.iter_rows(values_only=True)
+
         try:
             headers = list(next(iterator))
         except StopIteration:
             return [], sheet_names
 
         data_rows = []
+
         for row_number, values in enumerate(iterator, start=2):
             values = list(values)
+
             if not any(safe_text(v).strip() for v in values):
                 continue
+
             data_rows.append(
-                (row_number, spreadsheet_row_to_dict(headers, values))
+                (
+                    row_number,
+                    spreadsheet_row_to_dict(headers, values),
+                )
             )
 
         return data_rows, sheet_names
+
     finally:
         workbook.close()
 
 
 def validate_required_import_headers(row_dict, required_headers):
-    """Check that a spreadsheet row contains all required columns."""
     missing = []
+
     for header in required_headers:
         if normalize_import_header(header) not in row_dict:
             missing.append(header)
+
     return missing
 
 
 def create_import_hire(row, user, row_number):
-    """Create one Pending Hire record from an import row."""
     title = safe_text(
         import_value(row, "Requirement Title")
     ).strip()
@@ -3410,8 +2132,6 @@ def create_import_hire(row, user, row_number):
         "notification_period": safe_text(import_value(row, "Notification / Update Period")).strip(),
     }
 
-    # Keep compatibility with databases where Country/Currency were not
-    # added to HireRequirement yet.
     country = safe_text(import_value(row, "Country")).strip()
     currency = safe_text(import_value(row, "Currency")).strip()
 
@@ -3427,7 +2147,6 @@ def create_import_hire(row, user, row_number):
 
 
 def create_import_deliver(row, user, row_number):
-    """Create one Pending Deliver record from an import row."""
     title = safe_text(
         import_value(row, "Delivery Title")
     ).strip()
@@ -3447,28 +2166,63 @@ def create_import_deliver(row, user, row_number):
         title=title,
         type=safe_text(import_value(row, "Delivery Type")).strip(),
         category=safe_text(import_value(row, "Delivery Category")).strip(),
-        description=safe_text(import_value(row, "Description / What Can Your Team Provide?")).strip(),
+        description=safe_text(
+            import_value(
+                row,
+                "Description / What Can Your Team Provide?",
+            )
+        ).strip(),
         scope=safe_text(import_value(row, "Delivery Scope")).strip(),
-        deliverables=safe_text(import_value(row, "Deliverables / Task Breakdown")).strip(),
-        currency=safe_text(import_value(row, "Currency") or "PKR").strip() or "PKR",
+        deliverables=safe_text(
+            import_value(row, "Deliverables / Task Breakdown")
+        ).strip(),
+        currency=safe_text(
+            import_value(row, "Currency") or "PKR"
+        ).strip() or "PKR",
         amount=amount,
         included_cost=safe_text(import_value(row, "Included Cost")).strip(),
         excluded_cost=safe_text(import_value(row, "Excluded Cost")).strip(),
         processing=safe_text(import_value(row, "Processing Type")).strip(),
-        standard_timeline=safe_text(import_value(row, "Standard Delivery Timeline")).strip(),
-        urgent_timeline=safe_text(import_value(row, "Urgent / Priority Timeline")).strip(),
-        available_resources=safe_text(import_value(row, "Available Resources")).strip(),
-        required_resources=safe_text(import_value(row, "Required Resources")).strip(),
-        tools=safe_text(import_value(row, "Available Tools & Software")).strip(),
-        physical_resources=safe_text(import_value(row, "Physical Resources / Equipment")).strip(),
-        additional_resources=safe_text(import_value(row, "Additional Resources")).strip(),
+        standard_timeline=safe_text(
+            import_value(row, "Standard Delivery Timeline")
+        ).strip(),
+        urgent_timeline=safe_text(
+            import_value(row, "Urgent / Priority Timeline")
+        ).strip(),
+        available_resources=safe_text(
+            import_value(row, "Available Resources")
+        ).strip(),
+        required_resources=safe_text(
+            import_value(row, "Required Resources")
+        ).strip(),
+        tools=safe_text(
+            import_value(row, "Available Tools & Software")
+        ).strip(),
+        physical_resources=safe_text(
+            import_value(row, "Physical Resources / Equipment")
+        ).strip(),
+        additional_resources=safe_text(
+            import_value(row, "Additional Resources")
+        ).strip(),
         city=safe_text(import_value(row, "Delivery City")).strip(),
-        full_location=safe_text(import_value(row, "Full Delivery Location / Address")).strip(),
-        portfolio=safe_text(import_value(row, "Portfolio / Website / Demo Link")).strip(),
-        notification_period=safe_text(import_value(row, "Notification / Update Period")).strip(),
-        notification_details=safe_text(import_value(row, "Additional Notification Details")).strip(),
-        communication_method=safe_text(import_value(row, "Preferred Communication Method")).strip(),
-        communication_details=safe_text(import_value(row, "Communication Details")).strip(),
+        full_location=safe_text(
+            import_value(row, "Full Delivery Location / Address")
+        ).strip(),
+        portfolio=safe_text(
+            import_value(row, "Portfolio / Website / Demo Link")
+        ).strip(),
+        notification_period=safe_text(
+            import_value(row, "Notification / Update Period")
+        ).strip(),
+        notification_details=safe_text(
+            import_value(row, "Additional Notification Details")
+        ).strip(),
+        communication_method=safe_text(
+            import_value(row, "Preferred Communication Method")
+        ).strip(),
+        communication_details=safe_text(
+            import_value(row, "Communication Details")
+        ).strip(),
     )
 
     deliver.status = "Pending"
@@ -3476,7 +2230,6 @@ def create_import_deliver(row, user, row_number):
 
 
 def read_team_member_rows(workbook_file):
-    """Read Deliver Team Members sheet from an Excel workbook."""
     workbook = load_workbook(
         workbook_file,
         read_only=True,
@@ -3496,24 +2249,27 @@ def read_team_member_rows(workbook_file):
             return []
 
         rows = []
+
         for row_number, values in enumerate(iterator, start=2):
             values = list(values)
+
             if not any(safe_text(v).strip() for v in values):
                 continue
+
             rows.append(
-                (row_number, spreadsheet_row_to_dict(headers, values))
+                (
+                    row_number,
+                    spreadsheet_row_to_dict(headers, values),
+                )
             )
+
         return rows
+
     finally:
         workbook.close()
 
 
-def add_import_team_members(
-    team_rows,
-    deliver_map,
-    errors
-):
-    """Attach imported team members to imported Deliver records."""
+def add_import_team_members(team_rows, deliver_map, errors):
     imported = 0
 
     for row_number, row in team_rows:
@@ -3532,9 +2288,11 @@ def add_import_team_members(
             continue
 
         deliver = deliver_map.get(import_key)
+
         if not deliver:
             errors.append(
-                f"Team Members row {row_number}: no Deliver record was found for Import Key '{import_key}'."
+                f"Team Members row {row_number}: no Deliver record was "
+                f"found for Import Key '{import_key}'."
             )
             continue
 
@@ -3548,30 +2306,36 @@ def add_import_team_members(
             deliver_id=deliver.id,
             name=member_name,
             role=safe_text(import_value(row, "Role")).strip(),
-            skills=safe_text(import_value(row, "Skills / Expertise")).strip(),
-            experience=safe_text(import_value(row, "Years of Experience")).strip(),
-            profile=safe_text(import_value(row, "CV / Profile Documents")).strip(),
-            similar_experience=safe_text(import_value(row, "Similar Experience")).strip(),
+            skills=safe_text(
+                import_value(row, "Skills / Expertise")
+            ).strip(),
+            experience=safe_text(
+                import_value(row, "Years of Experience")
+            ).strip(),
+            profile=safe_text(
+                import_value(row, "CV / Profile Documents")
+            ).strip(),
+            similar_experience=safe_text(
+                import_value(row, "Similar Experience")
+            ).strip(),
         )
+
         db.session.add(member)
         imported += 1
 
     return imported
 
 
-def build_import_template(
-    record_type
-):
-    """Build a blank Excel template for Hire or Deliver imports."""
+def build_import_template(record_type):
     workbook = Workbook()
-    default_sheet = workbook.active
-    workbook.remove(default_sheet)
+    workbook.remove(workbook.active)
 
     if record_type == "hire":
         sheet = workbook.create_sheet("Hire Records")
         sheet.append(IMPORT_HIRE_HEADERS)
         style_excel_sheet(sheet)
         filename = "Hire_Import_Template.xlsx"
+
     else:
         sheet = workbook.create_sheet("Deliver Records")
         sheet.append(IMPORT_DELIVER_HEADERS)
@@ -3580,34 +2344,23 @@ def build_import_template(
         team_sheet = workbook.create_sheet("Deliver Team Members")
         team_sheet.append(IMPORT_TEAM_HEADERS)
         style_excel_sheet(team_sheet)
+
         filename = "Deliver_Import_Template.xlsx"
 
     output = io.BytesIO()
     workbook.save(output)
     output.seek(0)
+
     return output, filename
 
 
 # =========================================================
-# IMPORT EXCEL / CSV
+# IMPORT NEW RECORDS
 # =========================================================
 
-@admin_bp.route(
-    "/records/import",
-    methods=["POST"]
-)
+@admin_bp.route("/records/import", methods=["POST"])
 @admin_required
 def import_records():
-    """
-    Import Hire/Deliver records from Excel or CSV.
-
-    Ownership is ALWAYS resolved from an existing registered
-    user's email. User Name is informational only and is never
-    used to assign ownership.
-
-    Imported records always start as Pending so the same admin
-    approval workflow is used for manually imported records.
-    """
     try:
         record_type = normalize_record_type(
             request.form.get("type", "", type=str)
@@ -3616,7 +2369,7 @@ def import_records():
         if record_type not in {"hire", "deliver"}:
             return {
                 "status": "error",
-                "message": "Import type must be hire or deliver."
+                "message": "Import type must be hire or deliver.",
             }, 400
 
         uploaded_file = request.files.get("file")
@@ -3624,7 +2377,7 @@ def import_records():
         if not uploaded_file or not uploaded_file.filename:
             return {
                 "status": "error",
-                "message": "Please select an Excel or CSV file."
+                "message": "Please select an Excel or CSV file.",
             }, 400
 
         filename = safe_text(uploaded_file.filename).lower()
@@ -3633,7 +2386,7 @@ def import_records():
         if extension not in {".xlsx", ".xlsm", ".csv"}:
             return {
                 "status": "error",
-                "message": "Only .xlsx, .xlsm and .csv files are supported."
+                "message": "Only .xlsx, .xlsm and .csv files are supported.",
             }, 400
 
         errors = []
@@ -3644,21 +2397,21 @@ def import_records():
         if extension == ".csv":
             rows, _ = get_import_rows_from_csv(uploaded_file)
             team_rows = []
+
         else:
-            # Read the uploaded workbook once for the main sheet and again
-            # for team members. read_only mode keeps memory usage low.
             preferred_sheet = (
                 "Hire Records"
                 if record_type == "hire"
                 else "Deliver Records"
             )
+
             rows, _ = get_import_rows_from_excel(
                 uploaded_file,
-                preferred_sheet=preferred_sheet
+                preferred_sheet=preferred_sheet,
             )
 
-            # The uploaded stream may need to be reset for the team sheet.
             uploaded_file.stream.seek(0)
+
             team_rows = (
                 read_team_member_rows(uploaded_file)
                 if record_type == "deliver"
@@ -3666,21 +2419,15 @@ def import_records():
             )
 
         required_headers = (
-            [
-                "User Email",
-                "Requirement Title",
-            ]
+            ["User Email", "Requirement Title"]
             if record_type == "hire"
-            else [
-                "User Email",
-                "Delivery Title",
-            ]
+            else ["User Email", "Delivery Title"]
         )
 
         for row_number, row in rows:
             missing = validate_required_import_headers(
                 row,
-                required_headers
+                required_headers,
             )
 
             if missing:
@@ -3693,7 +2440,7 @@ def import_records():
 
             user, user_error = validate_import_user(
                 row,
-                row_number
+                row_number,
             )
 
             if user_error:
@@ -3706,7 +2453,7 @@ def import_records():
                     record = create_import_hire(
                         row,
                         user,
-                        row_number
+                        row_number,
                     )
                     db.session.add(record)
                     imported_count += 1
@@ -3715,7 +2462,7 @@ def import_records():
                     record = create_import_deliver(
                         row,
                         user,
-                        row_number
+                        row_number,
                     )
                     db.session.add(record)
                     db.session.flush()
@@ -3723,6 +2470,7 @@ def import_records():
                     import_key = normalize_import_key(
                         import_value(row, "Import Key")
                     )
+
                     if import_key:
                         deliver_map[import_key] = record
 
@@ -3734,15 +2482,15 @@ def import_records():
                     f"Row {row_number}: {safe_text(row_error)}"
                 )
 
-        # Flush valid main records before attaching team members.
         db.session.flush()
 
         team_imported_count = 0
+
         if record_type == "deliver" and team_rows:
             team_imported_count = add_import_team_members(
                 team_rows,
                 deliver_map,
-                errors
+                errors,
             )
 
         db.session.commit()
@@ -3767,16 +2515,12 @@ def import_records():
 
 
 # =========================================================
-# IMPORT TEMPLATES
+# EXISTING IMPORT TEMPLATES
 # =========================================================
 
-@admin_bp.route(
-    "/records/import/template",
-    methods=["GET"]
-)
+@admin_bp.route("/records/import/template", methods=["GET"])
 @admin_required
 def download_import_template():
-    """Download a blank Hire or Deliver import template."""
     try:
         record_type = normalize_record_type(
             request.args.get("type", "", type=str)
@@ -3785,12 +2529,10 @@ def download_import_template():
         if record_type not in {"hire", "deliver"}:
             return {
                 "status": "error",
-                "message": "Template type must be hire or deliver."
+                "message": "Template type must be hire or deliver.",
             }, 400
 
-        output, filename = build_import_template(
-            record_type
-        )
+        output, filename = build_import_template(record_type)
 
         return send_file(
             output,
@@ -3799,7 +2541,7 @@ def download_import_template():
             mimetype=(
                 "application/vnd.openxmlformats-officedocument."
                 "spreadsheetml.sheet"
-            )
+            ),
         )
 
     except Exception as e:
@@ -3808,4 +2550,3 @@ def download_import_template():
             "message": "Failed to generate import template.",
             "error": str(e),
         }, 500
-

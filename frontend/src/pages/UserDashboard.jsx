@@ -265,6 +265,52 @@ const SECTION_FIELDS = {
 
 /*
 =========================================================
+USER DATA MANAGEMENT
+=========================================================
+*/
+
+const HIRE_TEMPLATE_FIELDS = [
+  "country", "currency", "title", "type", "category", "description", "scope",
+  "deliverables", "budget", "processing", "standardTimeline", "urgentTimeline",
+  "humanResources", "roles", "skills", "tools", "physicalResources",
+  "additionalResources", "location", "fullLocation", "communicationMethod",
+  "notificationPeriod", "uploadedFiles",
+];
+
+const DELIVER_TEMPLATE_FIELDS = [
+  "country", "title", "type", "category", "description", "scope", "deliverables",
+  "currency", "amount", "included_cost", "excluded_cost", "processing",
+  "standardTimeline", "urgentTimeline", "teamMembers", "availableResources",
+  "requiredResources", "tools", "physicalResources", "additionalResources", "city",
+  "fullLocation", "portfolio", "social_media_link", "notificationPeriod",
+  "notificationDetails", "communicationMethod", "communicationDetails",
+  "uploadedFiles", "teamMemberProfileFiles",
+];
+
+const EDIT_FIELDS = {
+  hire: HIRE_TEMPLATE_FIELDS,
+  deliver: DELIVER_TEMPLATE_FIELDS,
+};
+
+const EDIT_FIELD_ALIASES = {
+  standardTimeline: ["standardTimeline", "standard_timeline"],
+  urgentTimeline: ["urgentTimeline", "urgent_timeline"],
+  humanResources: ["humanResources", "human_resources"],
+  physicalResources: ["physicalResources", "physical_resources"],
+  additionalResources: ["additionalResources", "additional_resources"],
+  availableResources: ["availableResources", "available_resources"],
+  requiredResources: ["requiredResources", "required_resources"],
+  fullLocation: ["fullLocation", "full_location"],
+  communicationMethod: ["communicationMethod", "communication_method"],
+  communicationDetails: ["communicationDetails", "communication_details"],
+  notificationPeriod: ["notificationPeriod", "notification_period"],
+  notificationDetails: ["notificationDetails", "notification_details"],
+  included_cost: ["included_cost", "includedCost"],
+  excluded_cost: ["excluded_cost", "excludedCost"],
+};
+
+/*
+=========================================================
 MAIN DASHBOARD
 =========================================================
 */
@@ -298,9 +344,30 @@ function UserDashboard() {
   const [refreshing, setRefreshing] =
     useState(false);
 
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionMessage, setActionMessage] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [editTarget, setEditTarget] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [importFile, setImportFile] = useState(null);
+  const [importResult, setImportResult] = useState(null);
+
   useEffect(() => {
     loadDashboard();
   }, []);
+
+  // Success/error messages are temporary. No manual close button is required.
+  useEffect(() => {
+    if (!actionMessage && !actionError) return undefined;
+
+    const timer = window.setTimeout(() => {
+      setActionMessage("");
+      setActionError("");
+    }, 4500);
+
+    return () => window.clearTimeout(timer);
+  }, [actionMessage, actionError]);
 
   /*
   ========================================================
@@ -1340,6 +1407,355 @@ function UserDashboard() {
 
   /*
   ========================================================
+  DATA MANAGEMENT
+  ========================================================
+  */
+
+  const clearActionState = () => {
+    setActionMessage("");
+    setActionError("");
+    setImportResult(null);
+  };
+
+  const getEditableValue = (record, field) => {
+    const aliases = EDIT_FIELD_ALIASES[field] || [field];
+    for (const key of aliases) {
+      if (record?.[key] !== undefined && record?.[key] !== null) {
+        const value = record[key];
+        return typeof value === "object" ? JSON.stringify(value, null, 2) : String(value);
+      }
+    }
+    if (field === "teamMembers") {
+      const members = getTeamMembers(record);
+      return members.length ? JSON.stringify(members, null, 2) : "";
+    }
+    return "";
+  };
+
+  const openEdit = (record, kind) => {
+    clearActionState();
+    const initial = {};
+    (EDIT_FIELDS[kind] || []).forEach((field) => {
+      initial[field] = getEditableValue(record, field);
+    });
+    setEditTarget({ ...record, recordKind: kind });
+    setEditForm(initial);
+  };
+
+  const closeEdit = () => {
+    if (actionLoading) return;
+    setEditTarget(null);
+    setEditForm({});
+  };
+
+  const updateEditField = (field, value) => {
+    setEditForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleDeleteRecord = async () => {
+    if (!deleteTarget || actionLoading) return;
+    const token = localStorage.getItem("hireDeliverAccessToken");
+    if (!token) { handleLogout(); return; }
+    try {
+      setActionLoading(true);
+      setActionMessage("");
+      setActionError("");
+      const { kind, id } = deleteTarget;
+      const response = await fetch(`${API_URL}/api/dashboard/records/${kind}/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      if (response.status === 401) { handleLogout(); return; }
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.status === "error") throw new Error(data.message || "Unable to delete this record.");
+      setActionMessage(data.message || "Record deleted successfully.");
+      setDeleteTarget(null);
+      await loadDashboard(true);
+    } catch (err) {
+      console.error("Delete record error:", err);
+      setActionError(err.message || "Unable to delete this record.");
+    } finally { setActionLoading(false); }
+  };
+
+  const handleEditSave = async () => {
+    if (!editTarget || actionLoading) return;
+    const token = localStorage.getItem("hireDeliverAccessToken");
+    if (!token) { handleLogout(); return; }
+    try {
+      setActionLoading(true);
+      setActionMessage("");
+      setActionError("");
+      const kind = editTarget.recordKind;
+      const payload = { ...editForm, id: editTarget.id };
+      if (kind === "deliver" && payload.teamMembers) {
+        try { payload.teamMembers = JSON.parse(payload.teamMembers); }
+        catch { throw new Error("Team Members must contain valid JSON."); }
+      }
+      const response = await fetch(`${API_URL}/api/dashboard/records/${kind}/${editTarget.id}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (response.status === 401) { handleLogout(); return; }
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.status === "error") throw new Error(data.message || "Unable to update this record.");
+      setActionMessage(data.message || "Record updated successfully.");
+      closeEdit();
+      await loadDashboard(true);
+    } catch (err) {
+      console.error("Edit record error:", err);
+      setActionError(err.message || "Unable to update this record.");
+    } finally { setActionLoading(false); }
+  };
+
+  const xlsxEscape = (value) =>
+    String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
+
+  const crc32 = (bytes) => {
+    let crc = 0xffffffff;
+    for (let i = 0; i < bytes.length; i += 1) {
+      crc ^= bytes[i];
+      for (let j = 0; j < 8; j += 1) {
+        crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+      }
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+  };
+
+  const u16 = (value) => [
+    value & 0xff,
+    (value >>> 8) & 0xff,
+  ];
+
+  const u32 = (value) => [
+    value & 0xff,
+    (value >>> 8) & 0xff,
+    (value >>> 16) & 0xff,
+    (value >>> 24) & 0xff,
+  ];
+
+  const makeStoredZip = (files) => {
+    const encoder = new TextEncoder();
+    const chunks = [];
+    const central = [];
+    let offset = 0;
+
+    Object.entries(files).forEach(([name, content]) => {
+      const nameBytes = encoder.encode(name);
+      const data = encoder.encode(content);
+      const crc = crc32(data);
+      const localHeader = new Uint8Array([
+        0x50, 0x4b, 0x03, 0x04,
+        20, 0, 0, 0, 0, 0,
+        0, 0, 0, 0,
+        ...u32(crc),
+        ...u32(data.length),
+        ...u32(data.length),
+        ...u16(nameBytes.length),
+        0, 0,
+      ]);
+
+      chunks.push(localHeader, nameBytes, data);
+
+      const centralHeader = new Uint8Array([
+        0x50, 0x4b, 0x01, 0x02,
+        20, 0, 20, 0, 0, 0, 0, 0,
+        0, 0, 0, 0,
+        ...u32(crc),
+        ...u32(data.length),
+        ...u32(data.length),
+        ...u16(nameBytes.length),
+        0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0,
+        ...u32(offset),
+      ]);
+
+      central.push(centralHeader, nameBytes);
+      offset += localHeader.length + nameBytes.length + data.length;
+    });
+
+    const centralSize = central.reduce((sum, item) => sum + item.length, 0);
+    const count = Object.keys(files).length;
+
+    const endRecord = new Uint8Array([
+      0x50, 0x4b, 0x05, 0x06,
+      0, 0, 0, 0,
+      ...u16(count),
+      ...u16(count),
+      ...u32(centralSize),
+      ...u32(offset),
+      0, 0,
+    ]);
+
+    const total = [...chunks, ...central, endRecord];
+    const blobParts = total.map((item) => item);
+    return new Blob(blobParts, {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+  };
+
+  const buildXlsxTemplate = (kind) => {
+    const fields = EDIT_FIELDS[kind] || [];
+    const title =
+      kind === "hire"
+        ? "Hire Record Import Template"
+        : "Deliver Record Import Template";
+
+    const exampleValues = {};
+    fields.forEach((field) => {
+      if (field === "country") exampleValues[field] = "Pakistan";
+      else if (field === "currency") exampleValues[field] = "PKR - Pakistani Rupee";
+      else if (field === "uploadedFiles") exampleValues[field] = "example.pdf, project-document.docx";
+      else if (field === "teamMemberProfileFiles") exampleValues[field] = "member-cv.pdf";
+      else if (field === "teamMembers") {
+        exampleValues[field] = JSON.stringify([
+          {
+            name: "Example Member",
+            role: "Frontend Developer",
+            skills: "React, JavaScript",
+            experience: "3",
+            profileFiles: ["member-cv.pdf"],
+            similarExperience: "E-commerce project",
+          },
+        ]);
+      } else {
+        exampleValues[field] = "";
+      }
+    });
+
+    const columns = fields.map((field, index) => {
+      let n = index + 1;
+      let ref = "";
+      while (n > 0) {
+        const remainder = (n - 1) % 26;
+        ref = String.fromCharCode(65 + remainder) + ref;
+        n = Math.floor((n - 1) / 26);
+      }
+      return { field, ref };
+    });
+
+    const rowCells = (rowNumber, values) =>
+      columns
+        .map(
+          ({ field, ref }) =>
+            `<c r="${ref}${rowNumber}" t="inlineStr"><is><t xml:space="preserve">${xlsxEscape(
+              values[field] || ""
+            )}</t></is></c>`
+        )
+        .join("");
+
+    const headerCells = rowCells(
+      1,
+      Object.fromEntries(fields.map((field) => [field, field]))
+    );
+    const exampleCells = rowCells(2, exampleValues);
+
+    const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+ xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<dimension ref="A1:${columns[columns.length - 1].ref}2"/>
+<sheetViews><sheetView workbookViewId="0"/></sheetViews>
+<sheetFormatPr defaultRowHeight="18"/>
+<cols>${columns.map(({ ref }) => {
+      const index = fields.indexOf(columns.find((item) => item.ref === ref)?.field) + 1;
+      return `<col min="${index}" max="${index}" width="24" customWidth="1"/>`;
+    }).join("")}</cols>
+<sheetData>
+<row r="1">${headerCells}</row>
+<row r="2">${exampleCells}</row>
+</sheetData>
+</worksheet>`;
+
+    const workbookXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+ xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets><sheet name="${title}" sheetId="1" r:id="rId1"/></sheets>
+</workbook>`;
+
+    const files = {
+      "[Content_Types].xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+</Types>`,
+      "_rels/.rels": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`,
+      "xl/workbook.xml": workbookXml,
+      "xl/_rels/workbook.xml.rels": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+</Relationships>`,
+      "xl/worksheets/sheet1.xml": sheetXml,
+    };
+
+    return makeStoredZip(files);
+  };
+
+  const downloadTemplate = (kind) => {
+    const blob = buildXlsxTemplate(kind);
+    const filename =
+      kind === "hire"
+        ? "Hire_Record_Import_Template.xlsx"
+        : "Deliver_Record_Import_Template.xlsx";
+
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setActionMessage(
+      `${kind === "hire" ? "Hire" : "Deliver"} Excel template downloaded successfully.`
+    );
+  };
+
+  const handleImport = async (kind) => {
+    if (!importFile || actionLoading) return;
+    const token = localStorage.getItem("hireDeliverAccessToken");
+    if (!token) { handleLogout(); return; }
+    try {
+      setActionLoading(true);
+      setActionMessage("");
+      setActionError("");
+      setImportResult(null);
+      const formData = new FormData();
+      formData.append("file", importFile);
+      const response = await fetch(`${API_URL}/api/dashboard/import/${kind}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (response.status === 401) { handleLogout(); return; }
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.status === "error") throw new Error(data.message || "Unable to import the selected file.");
+      setImportResult(data);
+      setActionMessage(data.message || "Import completed successfully.");
+      setImportFile(null);
+      await loadDashboard(true);
+    } catch (err) {
+      console.error("Import error:", err);
+      setActionError(err.message || "Unable to import the selected file.");
+    } finally { setActionLoading(false); }
+  };
+
+  const handleRecordEdit = (record, kind) => {
+    clearActionState();
+    openEdit(record, kind);
+  };
+
+  /*
+  ========================================================
   DETAILS
   ========================================================
   */
@@ -1513,6 +1929,18 @@ function UserDashboard() {
             </b>
           </button>
 
+          <div style={{ margin: "18px 12px 8px", padding: "10px 12px", borderRadius: "12px", background: "rgba(255,255,255,0.06)", color: "#9aa8bc", fontSize: "11px", fontWeight: 700, letterSpacing: "0.08em" }}>
+            DATA MANAGEMENT
+          </div>
+
+          <button type="button" className={`sidebar-link ${activeSection === "import-hire" ? "active" : ""}`} onClick={() => { clearActionState(); setActiveSection("import-hire"); }}>
+            <span className="sidebar-link-icon">↑</span><span>Import Hire</span>
+          </button>
+
+          <button type="button" className={`sidebar-link ${activeSection === "import-deliver" ? "active" : ""}`} onClick={() => { clearActionState(); setActiveSection("import-deliver"); }}>
+            <span className="sidebar-link-icon">↑</span><span>Import Deliver</span>
+          </button>
+
         </nav>
 
         <div className="sidebar-bottom">
@@ -1575,13 +2003,15 @@ function UserDashboard() {
             </span>
 
             <h1>
-              {activeSection ===
-              "overview"
+              {activeSection === "overview"
                 ? "Dashboard"
-                : activeSection ===
-                  "hire"
+                : activeSection === "hire"
                 ? "My Hire Requirements"
-                : "My Deliver Proposals"}
+                : activeSection === "deliver"
+                ? "My Deliver Proposals"
+                : activeSection === "import-hire"
+                ? "Import Hire Records"
+                : "Import Deliver Records"}
             </h1>
 
           </div>
@@ -1679,6 +2109,38 @@ function UserDashboard() {
             </button>
 
           </div>
+        )}
+
+        {(actionMessage || actionError) && (
+          <div
+            className={`dashboard-action-toast ${
+              actionError ? "is-error" : "is-success"
+            }`}
+            role="status"
+            aria-live="polite"
+          >
+            <span className="dashboard-action-toast-icon">
+              {actionError ? "!" : "✓"}
+            </span>
+            <div className="dashboard-action-toast-content">
+              <strong>{actionError ? "Action failed" : "Success"}</strong>
+              <span>{actionError || actionMessage}</span>
+            </div>
+            <span className="dashboard-action-toast-progress" />
+          </div>
+        )}
+
+        {(activeSection === "import-hire" || activeSection === "import-deliver") && (
+          <ImportSection
+            kind={activeSection === "import-hire" ? "hire" : "deliver"}
+            importFile={importFile}
+            setImportFile={setImportFile}
+            importResult={importResult}
+            actionLoading={actionLoading}
+            onDownloadTemplate={downloadTemplate}
+            onImport={handleImport}
+            onBack={() => setActiveSection(activeSection === "import-hire" ? "hire" : "deliver")}
+          />
         )}
 
         {/* =====================================================
@@ -2409,6 +2871,8 @@ function UserDashboard() {
                       getRecordValue={
                         getRecordValue
                       }
+                      onEdit={handleRecordEdit}
+                      onDelete={(record, kind) => setDeleteTarget({ ...record, kind })}
                     />
                   )
                 )}
@@ -2484,7 +2948,9 @@ function UserDashboard() {
             getRecordValue={
               getRecordValue
             }
-          />
+                      onEdit={handleRecordEdit}
+                      onDelete={(record, kind) => setDeleteTarget({ ...record, kind })}
+                    />
         )}
 
         {/* =====================================================
@@ -2541,7 +3007,9 @@ function UserDashboard() {
             getRecordValue={
               getRecordValue
             }
-          />
+                      onEdit={handleRecordEdit}
+                      onDelete={(record, kind) => setDeleteTarget({ ...record, kind })}
+                    />
         )}
 
       </main>
@@ -2583,6 +3051,14 @@ function UserDashboard() {
           />
         )}
 
+        {editTarget && (
+          <EditRecordModal record={editTarget} kind={editTarget.recordKind} form={editForm} onChange={updateEditField} onClose={closeEdit} onSave={handleEditSave} loading={actionLoading} />
+        )}
+
+        {deleteTarget && (
+          <DeleteConfirmModal record={deleteTarget} onCancel={() => !actionLoading && setDeleteTarget(null)} onConfirm={handleDeleteRecord} loading={actionLoading} getRecordTitle={getRecordTitle} />
+        )}
+
     </div>
   );
 }
@@ -2595,7 +3071,7 @@ APPROVAL STATE CARD
 
 function ApprovalStateCard({
   record, kind, statusConfig, formatDate, getRecordTitle,
-  getRecordType, getRecordCategory, onView,
+  getRecordType, getRecordCategory, onView, onEdit, onDelete,
 }) {
   const pending = statusConfig.label === "Pending";
 
@@ -2646,9 +3122,11 @@ function ApprovalStateCard({
 
       <div className="record-card-bottom">
         <span>Submitted on {formatDate(record?.created_at)}</span>
-        <button type="button" className="view-record-btn" onClick={() => onView(record, kind)}>
-          View Status <span>→</span>
-        </button>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <button type="button" className="view-record-btn" onClick={() => onView(record, kind)}>View Status <span>→</span></button>
+          <button type="button" className="view-record-btn" onClick={() => onEdit(record, kind)}>Edit</button>
+          <button type="button" className="view-record-btn" onClick={() => onDelete(record, kind)}>Delete</button>
+        </div>
       </div>
     </article>
   );
@@ -2673,6 +3151,8 @@ function RecordCard({
   getRecordLocation,
   getRecordTimeline,
   getRecordValue,
+  onEdit,
+  onDelete,
 }) {
   const statusConfig =
     getStatusConfig(record);
@@ -2688,6 +3168,8 @@ function RecordCard({
         getRecordType={getRecordType}
         getRecordCategory={getRecordCategory}
         onView={onView}
+        onEdit={onEdit}
+        onDelete={onDelete}
       />
     );
   }
@@ -2865,25 +3347,266 @@ function RecordCard({
           )}
         </span>
 
-        <button
-          type="button"
-          className="view-record-btn"
-          onClick={() =>
-            onView(
-              record,
-              kind
-            )
-          }
-        >
-          View Complete Details
-          <span>→</span>
-        </button>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <button type="button" className="view-record-btn" onClick={() => onView(record, kind)}>
+            View Complete Details <span>→</span>
+          </button>
+          <button type="button" className="view-record-btn" onClick={() => onEdit(record, kind)}>Edit</button>
+          <button type="button" className="view-record-btn" onClick={() => onDelete(record, kind)}>Delete</button>
+        </div>
 
       </div>
 
     </article>
   );
 }
+
+
+/*
+=========================================================
+IMPORT SECTION
+=========================================================
+*/
+function ImportSection({
+  kind,
+  importFile,
+  setImportFile,
+  importResult,
+  actionLoading,
+  onDownloadTemplate,
+  onImport,
+  onBack,
+}) {
+  const fields = EDIT_FIELDS[kind] || [];
+  const isHire = kind === "hire";
+  const label = isHire ? "Hire" : "Deliver";
+
+  const fieldGroups = isHire
+    ? [
+        ["Basic Information", ["country", "currency", "title", "type", "category"]],
+        ["Requirement Details", ["description", "scope", "deliverables"]],
+        ["Budget & Processing", ["budget", "processing", "standardTimeline", "urgentTimeline"]],
+        ["Human Resources", ["humanResources", "roles", "skills"]],
+        ["Resources & Tools", ["tools", "physicalResources", "additionalResources"]],
+        ["Location & Communication", ["location", "fullLocation", "communicationMethod", "notificationPeriod"]],
+        ["Files", ["uploadedFiles"]],
+      ]
+    : [
+        ["Basic Information", ["country", "title", "type", "category"]],
+        ["Delivery Details", ["description", "scope", "deliverables"]],
+        ["Cost & Processing", ["currency", "amount", "included_cost", "excluded_cost", "processing", "standardTimeline", "urgentTimeline"]],
+        ["Team Members", ["teamMembers"]],
+        ["Resources & Tools", ["availableResources", "requiredResources", "tools", "physicalResources", "additionalResources"]],
+        ["Location & Proof", ["city", "fullLocation", "portfolio", "social_media_link"]],
+        ["Notification & Communication", ["notificationPeriod", "notificationDetails", "communicationMethod", "communicationDetails"]],
+        ["Files", ["uploadedFiles", "teamMemberProfileFiles"]],
+      ];
+
+  return (
+    <section className="data-management-panel">
+      <div className="data-management-header">
+        <div>
+          <span className="data-management-eyebrow">DATA MANAGEMENT</span>
+          <h2>Import {label} Records</h2>
+          <p>
+            Download the exact Excel template, enter one record per row, and upload it.
+            Your logged-in account is attached automatically.
+          </p>
+        </div>
+
+        <button type="button" onClick={onBack} className="dm-secondary-btn">
+          ← Back to Records
+        </button>
+      </div>
+
+      <div className="dm-step-grid">
+        <article className="dm-step-card">
+          <div className="dm-step-number">01</div>
+          <div>
+            <strong>Download the template</strong>
+            <p>Use the real .xlsx file with the exact field names required by the form.</p>
+            <button
+              type="button"
+              className="dm-primary-btn"
+              onClick={() => onDownloadTemplate(kind)}
+            >
+              ↓ Download {label} Template
+            </button>
+          </div>
+        </article>
+
+        <article className="dm-step-card">
+          <div className="dm-step-number">02</div>
+          <div>
+            <strong>Fill the Excel row</strong>
+            <p>
+              Keep the column names unchanged. Add one {label.toLowerCase()} record per row.
+              Do not add user_id, status, record_key, or record_hash.
+            </p>
+          </div>
+        </article>
+
+        <article className="dm-step-card">
+          <div className="dm-step-number">03</div>
+          <div>
+            <strong>Upload & import</strong>
+            <p>
+              Select the completed .xlsx, .xls, or .csv file and import it securely.
+            </p>
+          </div>
+        </article>
+      </div>
+
+      <div className="dm-fields-panel">
+        <div className="dm-fields-heading">
+          <div>
+            <span>FIELD MAP</span>
+            <h3>{label} template includes</h3>
+          </div>
+          <b>{fields.length} columns</b>
+        </div>
+
+        <div className="dm-field-groups">
+          {fieldGroups.map(([group, groupFields]) => (
+            <div className="dm-field-group" key={group}>
+              <h4>{group}</h4>
+              <div className="dm-field-chips">
+                {groupFields
+                  .filter((field) => fields.includes(field))
+                  .map((field) => (
+                    <code key={field}>{field}</code>
+                  ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {isHire ? (
+        <div className="dm-file-note">
+          <strong>Files:</strong> the <code>uploadedFiles</code> column is included in
+          the Excel template for file names/references. Excel cells cannot contain an
+          actual uploaded file. Actual attachments must be uploaded through the platform
+          file-upload form.
+        </div>
+      ) : (
+        <div className="dm-file-note dm-team-note">
+          <strong>Team Members & Files:</strong> use <code>teamMembers</code> as JSON in
+          one cell, including name, role, skills, experience, profileFiles, and
+          similarExperience. <code>uploadedFiles</code> and
+          <code>teamMemberProfileFiles</code> are included for attachment names/references.
+          Actual files still need to be uploaded through the platform.
+        </div>
+      )}
+
+      <div className="dm-upload-card">
+        <div className="dm-upload-icon">↑</div>
+        <div className="dm-upload-copy">
+          <span>UPLOAD {label.toUpperCase()} EXCEL</span>
+          <strong>{importFile ? importFile.name : "Choose your completed template"}</strong>
+          <small>Supported: .xlsx, .xls, .csv · Maximum file size follows server rules.</small>
+        </div>
+
+        <label className="dm-file-picker">
+          <span>{importFile ? "Change File" : "Choose File"}</span>
+          <input
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            onChange={(event) => setImportFile(event.target.files?.[0] || null)}
+          />
+        </label>
+      </div>
+
+      <div className="dm-actions">
+        <button
+          type="button"
+          className="dm-secondary-btn"
+          onClick={() => setImportFile(null)}
+          disabled={!importFile || actionLoading}
+        >
+          Clear File
+        </button>
+
+        <button
+          type="button"
+          className="dm-primary-btn"
+          onClick={() => onImport(kind)}
+          disabled={!importFile || actionLoading}
+        >
+          {actionLoading ? "Importing..." : `Import ${label} Records`}
+        </button>
+      </div>
+
+      {importResult && (
+        <div className="dm-import-result">
+          <div>
+            <span>IMPORT RESULT</span>
+            <strong>Import completed</strong>
+          </div>
+          <pre>{JSON.stringify(importResult, null, 2)}</pre>
+        </div>
+      )}
+    </section>
+  );
+}
+
+const dmPrimaryButton={border:0,borderRadius:"10px",padding:"11px 16px",background:"#0f172a",color:"#fff",fontWeight:700,cursor:"pointer"};
+const dmSecondaryButton={border:"1px solid #d6dce5",borderRadius:"10px",padding:"11px 16px",background:"#fff",color:"#334155",fontWeight:700,cursor:"pointer"};
+const dmInfoCard={border:"1px solid #e2e8f0",borderRadius:"14px",padding:"18px",background:"#fff"};
+const dmCardTitle={display:"block",color:"#0f172a",marginBottom:"7px"};
+const dmCardText={color:"#64748b",lineHeight:1.5,margin:"0 0 14px"};
+
+/*
+=========================================================
+EDIT MODAL
+=========================================================
+*/
+function EditRecordModal({record,kind,form,onChange,onClose,onSave,loading}) {
+  const fields=EDIT_FIELDS[kind]||[];
+  return (
+    <div style={modalBackdropStyle}>
+      <div style={{...modalCardStyle,maxWidth:"920px"}}>
+        <div style={modalHeaderStyle}>
+          <div><span style={modalEyebrowStyle}>EDIT RECORD</span><h2 style={{margin:"6px 0 0",color:"#0f172a"}}>{record?.title||"Update Record"}</h2></div>
+          <button type="button" onClick={onClose} disabled={loading} style={modalCloseStyle}>×</button>
+        </div>
+        <div style={{maxHeight:"62vh",overflowY:"auto"}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:"16px"}}>
+            {fields.map(field=>{
+              const long=["description","scope","deliverables","skills","tools","physicalResources","additionalResources","availableResources","requiredResources","fullLocation","portfolio","notificationDetails","communicationDetails","roles","humanResources","teamMembers"].includes(field);
+              return <label key={field} style={{display:"flex",flexDirection:"column",gap:"7px",gridColumn:long?"1 / -1":"auto"}}>
+                <span style={{fontSize:"13px",fontWeight:700,color:"#334155"}}>{FIELD_LABELS[field]||field}</span>
+                {long?<textarea value={form[field]||""} onChange={e=>onChange(field,e.target.value)} rows={field==="teamMembers"?8:4} style={modalInputStyle}/>:<input type="text" value={form[field]||""} onChange={e=>onChange(field,e.target.value)} style={modalInputStyle}/>}
+              </label>
+            })}
+          </div>
+        </div>
+        <div style={modalFooterStyle}>
+          <button type="button" onClick={onClose} disabled={loading} style={dmSecondaryButton}>Cancel</button>
+          <button type="button" onClick={onSave} disabled={loading} style={{...dmPrimaryButton,opacity:loading ? .6 : 1}}>{loading?"Saving...":"Save Changes"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+function DeleteConfirmModal({record,onCancel,onConfirm,loading,getRecordTitle}) {
+  return <div style={modalBackdropStyle}><div style={{...modalCardStyle,maxWidth:"520px"}}>
+    <div style={{fontSize:"38px",marginBottom:"8px"}}>⚠</div>
+    <h2 style={{margin:"0 0 10px",color:"#0f172a"}}>Delete this record?</h2>
+    <p style={{color:"#64748b",lineHeight:1.6}}>You are about to permanently delete <strong>{getRecordTitle(record)}</strong>. This action cannot be undone.</p>
+    <div style={{display:"flex",justifyContent:"flex-end",gap:"10px",marginTop:"22px",flexWrap:"wrap"}}>
+      <button type="button" onClick={onCancel} disabled={loading} style={dmSecondaryButton}>Cancel</button>
+      <button type="button" onClick={onConfirm} disabled={loading} style={{...dmPrimaryButton,background:"#b91c1c",opacity:loading ? .6 : 1}}>{loading?"Deleting...":"Yes, Delete"}</button>
+    </div>
+  </div></div>;
+}
+const modalBackdropStyle={position:"fixed",inset:0,zIndex:9999,background:"rgba(15,23,42,.62)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"};
+const modalCardStyle={width:"100%",background:"#fff",borderRadius:"18px",padding:"24px",boxShadow:"0 30px 80px rgba(15,23,42,.25)"};
+const modalHeaderStyle={display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"18px",marginBottom:"20px"};
+const modalEyebrowStyle={fontSize:"11px",fontWeight:800,letterSpacing:".1em",color:"#64748b"};
+const modalCloseStyle={width:"38px",height:"38px",borderRadius:"10px",border:"1px solid #e2e8f0",background:"#fff",fontSize:"22px",cursor:"pointer",color:"#334155"};
+const modalInputStyle={width:"100%",boxSizing:"border-box",border:"1px solid #d7dee8",borderRadius:"10px",padding:"11px 12px",fontSize:"14px",color:"#0f172a",background:"#fff",outline:"none"};
+const modalFooterStyle={display:"flex",justifyContent:"flex-end",gap:"10px",marginTop:"22px",paddingTop:"18px",borderTop:"1px solid #e5e7eb"};
 
 /*
 =========================================================
@@ -2938,6 +3661,8 @@ function RecordsPage({
   getRecordLocation,
   getRecordTimeline,
   getRecordValue,
+  onEdit,
+  onDelete,
 }) {
   return (
     <>
@@ -3052,6 +3777,8 @@ function RecordsPage({
                 getRecordValue={
                   getRecordValue
                 }
+                onEdit={onEdit}
+                onDelete={onDelete}
               />
             )
           )}
